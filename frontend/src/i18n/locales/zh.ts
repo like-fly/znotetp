@@ -135,6 +135,7 @@ export default {
     "note.notebook.create.title": "新建笔记本",
     "note.notebook.create.placeholder": "请输入笔记本名称",
     "note.notebook.empty": "还没有笔记本，点上方按钮创建一个吧",
+    "note.notebook.empty_short": "暂无笔记本",
     "note.category.header": "我的笔记",
     "note.category.empty": "该笔记本下还没有分类",
     "note.category.add_child": "新建子分类",
