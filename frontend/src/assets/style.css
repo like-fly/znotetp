@@ -43,62 +43,14 @@
   }
 }
 /* ============================================================
- * Milkdown Crepe 编辑器样式覆盖
- *
- * Crepe 结构：
- *   .milkdown                  → 编辑器外壳（需 position: relative 让浮动工具栏正确定位）
- *     .milkdown-editor         → ProseMirror 编辑区域（需 overflow-y: auto 实现滚动）
- *       .ProseMirror           → 实际内容区
- *     .milkdown-toolbar        → 浮动工具栏（position: absolute）
- *     .milkdown-block-handle   → 拖拽把手
- *     .milkdown-link-tooltip   → 链接浮层
+ * Vditor 编辑器样式覆盖
  * ============================================================ */
-
-/* 编辑器外壳：relative 定位让绝对定位的工具栏/浮层能正确定位 */
-.milkdown-wrapper .milkdown {
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: none !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  background: transparent;
+.editor-wrapper {
+  --vditor-bg: transparent;
 }
 
-/* ProseMirror 编辑区域：撑满剩余空间并允许纵向滚动 */
-.milkdown-wrapper .milkdown .milkdown-editor {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* ProseMirror 内容区 */
-.milkdown-wrapper .milkdown .milkdown-editor .ProseMirror {
-  padding: 16px;
-  min-height: 100%;
-  outline: none;
-  background: transparent;
-}
-
-/* 浮动工具栏：确保水平排列 + 正确的 z-index */
-.milkdown-wrapper .milkdown .milkdown-toolbar {
-  position: absolute;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  z-index: 50;
-  gap: 0;
-}
-
-/* Block-edit 工具栏按钮 */
-.milkdown-wrapper .milkdown .milkdown-block-handle {
-  z-index: 50;
-}
-
-/* 占位符样式 */
-.milkdown-wrapper .milkdown .placeholder {
-  color: #94a3b8;
-  font-style: italic;
+.vditor-reset {
+  padding: 16px !important;
+  min-height: 100% !important;
+  outline: none !important;
 }

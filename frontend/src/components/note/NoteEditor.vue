@@ -2,12 +2,10 @@
 /**
  * 笔记编辑器包装组件
  *
- * 提供 MilkdownProvider 上下文，集成 MilkdownEditor
- * 保持对外接口不变（v-model）
+ * 集成 VditorEditor，保持对外接口不变（v-model）
  */
-import { MilkdownProvider } from "@milkdown/vue";
 import { useI18n } from "vue-i18n";
-import MilkdownEditor from "./MilkdownEditor.vue";
+import VditorEditor from "./VditorEditor.vue";
 
 const { t } = useI18n();
 
@@ -35,20 +33,18 @@ const handleReady = () => {
 </script>
 
 <template>
-  <div class="milkdown-wrapper" :style="{ height: height || '100%' }">
-    <MilkdownProvider>
-      <MilkdownEditor
-        :model-value="modelValue"
-        :placeholder="t('note.editor.placeholder')"
-        @update:model-value="handleUpdate"
-        @ready="handleReady"
-      />
-    </MilkdownProvider>
+  <div class="editor-wrapper" :style="{ height: height || '100%' }">
+    <VditorEditor
+      :model-value="modelValue"
+      :placeholder="t('note.editor.placeholder')"
+      @update:model-value="handleUpdate"
+      @ready="handleReady"
+    />
   </div>
 </template>
 
 <style scoped>
-.milkdown-wrapper {
+.editor-wrapper {
   width: 100%;
   height: 100%;
   overflow: hidden;
