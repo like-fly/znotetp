@@ -16,6 +16,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: "select", id: number): void;
+    /** 右键笔记时触发，附带鼠标坐标用于菜单定位 */
+    (e: "contextmenu", note: Note, e: MouseEvent): void;
 }>();
 
 /** 摘要：取 content 纯文本前 80 字符 */
@@ -52,6 +54,7 @@ const isPinned = computed(() => props.note.is_pinned === 1);
         : 'border-slate-200/60 bg-white hover:border-slate-300 hover:shadow-sm'
     "
     @click="emit('select', note.id)"
+    @contextmenu.prevent="(e: MouseEvent) => emit('contextmenu', note, e)"
   >
     <!-- 标题行：标题 + 置顶标记 -->
     <div class="flex items-center gap-1.5">

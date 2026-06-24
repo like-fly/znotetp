@@ -52,7 +52,7 @@
     border-radius: 8px !important;
 }
 .vditor-reset{
-    padding:0 36px 0 36px !important;
+    padding:0 36px 24px 36px !important;
     background-color: #FAFBFC !important;
 }
 .vditor{
@@ -66,6 +66,30 @@
 
 .vditor-toolbar{
     border: 0px !important;
-    padding-left:0px !important; 
+    padding-left:26px !important; 
+    padding-right:26px !important; 
     /*border-top-width: 0px !important;*/
+}
+
+/* 即时渲染模式下图片默认居中显示，并加 8px 圆角边框 */
+.vditor-ir img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 8px;
+}
+
+/* 即时渲染模式下 blockquote 样式：加深背景、深灰左边框、首末段落留白 */
+.vditor-ir blockquote {
+    background-color: #f1f3f5 !important;
+    border-left: 4px solid #4a4a4a !important;
+    border-radius: 4px;
+}
+
+.vditor-ir blockquote p:first-of-type {
+    padding-top: 12px !important;
+}
+
+.vditor-ir blockquote p:last-of-type {
+    padding-bottom: 12px !important;
 }

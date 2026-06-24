@@ -5,15 +5,22 @@
  * 顶部：搜索框（前端按标题过滤）+ 新建笔记按钮
  * 主体：笔记卡片列表（来自 store.displayedNotes）
  * 空态：友好提示
+ *
+ * 右键笔记项可弹出 NoteContextMenu 菜单，调用 store action
+ * 完成移入回收站 / 置顶笔记（智能切换），列表自动刷新。
  */
 import { computed, ref } from "vue";
-import { NInput, NSpin } from "naive-ui";
+import { NInput, NSpin, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import ZIcon from "@/components/DynamicIcon.vue";
 import NoteListItem from "@/components/note/NoteListItem.vue";
+import NoteContextMenu, { type NoteContextAction } from "@/components/note/NoteContextMenu.vue";
+import { useNoteStore } from "@/stores/note";
 import type { Note } from "@/types/note";
 
 const { t } = useI18n();
+const message = useMessage();
+const noteStore = useNoteStore();
 
 const props = defineProps<{
     notes: Note[];
@@ -37,6 +44,42 @@ const filteredNotes = computed(() => {
     if (!kw) return props.notes;
     return props.notes.filter((n) => n.title.toLowerCase().includes(kw));
 });
+
+// ==================== 右键菜单状态 ====================
+
+/** 菜单是否显示 */
+const menuShow = ref(false);
+/** 菜单横坐标 */
+const menuX = ref(0);
+/** 菜单纵坐标 */
+const menuY = ref(0);
+/** 当前右键的笔记 */
+const menuNote = ref<Note | null>(null);
+
+/** 右键笔记项时：记录坐标并打开菜单 */
+const handleContextMenu = (note: Note, e: MouseEvent) => {
+    menuNote.value = note;
+    menuX.value = e.clientX;
+    menuY.value = e.clientY;
+    menuShow.value = true;
+};
+
+/**
+ * 菜单选中操作时：调用对应 store action
+ * - trash：软删除后从本地缓存移除，store 内部已处理选中态清空
+ * - pin：智能切换 is_pinned 0/1，更新后本地缓存自动同步
+ */
+const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
+    if (action === "trash") {
+        await noteStore.deleteNote(note.id);
+        message.success(t("note.context.trash.success"));
+        return;
+    }
+    // pin：智能切换置顶状态
+    const next = note.is_pinned === 1 ? 0 : 1;
+    await noteStore.updateNote(note.id, { is_pinned: next });
+    message.success(next === 1 ? t("note.context.pin.success") : t("note.context.unpin.success"));
+};
 </script>
 
 <template>
@@ -75,6 +118,7 @@ const filteredNotes = computed(() => {
           :note="note"
           :active="activeId === note.id"
           @select="(id: number) => emit('select', id)"
+          @contextmenu="handleContextMenu"
         />
       </div>
 
@@ -92,5 +136,14 @@ const filteredNotes = computed(() => {
         </div>
       </div>
     </div>
+
+    <!-- 笔记右键菜单：通过 manual 触发 + x/y 定位 -->
+    <NoteContextMenu
+      v-model:show="menuShow"
+      :x="menuX"
+      :y="menuY"
+      :note="menuNote"
+      @select="handleMenuSelect"
+    />
   </div>
 </template>

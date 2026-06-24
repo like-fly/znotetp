@@ -160,4 +160,10 @@ export default {
     "note.dialog.confirm": "Confirm",
     "note.empty.workspace.title": "Welcome to Notes Workspace",
     "note.empty.workspace.desc": "Select a category on the left to view notes",
+    "note.context.trash": "Move to Trash",
+    "note.context.pin": "Pin Note",
+    "note.context.unpin": "Unpin Note",
+    "note.context.trash.success": "Moved to trash",
+    "note.context.pin.success": "Pinned",
+    "note.context.unpin.success": "Unpinned",
 };

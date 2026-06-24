@@ -52,3 +52,15 @@ export const updateNote = async (
     }
     return null;
 };
+
+/**
+ * 删除笔记（软删除：后端置 is_deleted=1、deleted_at=now）
+ * @param id 笔记 id
+ */
+export const deleteNote = async (id: number): Promise<Note | null> => {
+    const res = await req.post<ApiResult<Note>>("/api/user/notebook/note/delete", { id });
+    if (res.data?.code === 200) {
+        return res.data.data;
+    }
+    return null;
+};

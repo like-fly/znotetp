@@ -348,5 +348,38 @@ export const useNoteStore = defineStore("note", {
                 this.loading.save = false;
             }
         },
+
+        /**
+         * 删除笔记（软删除）
+         * 后端置 is_deleted=1，前端从对应分类缓存中移除该笔记；
+         * 若删除的是当前激活笔记，清空选中回到空态。
+         */
+        async deleteNote(id: number) {
+            this.loading.save = true;
+            try {
+                const result = await noteApi.deleteNote(id);
+                if (result) {
+                    // 从对应分类的笔记列表中移除
+                    for (const cid of Object.keys(this.notesByCategory)) {
+                        const list = this.notesByCategory[Number(cid)];
+                        const idx = list.findIndex((n) => n.id === id);
+                        if (idx !== -1) {
+                            this.notesByCategory = {
+                                ...this.notesByCategory,
+                                [Number(cid)]: list.filter((n) => n.id !== id),
+                            };
+                            break;
+                        }
+                    }
+                    // 若删除的是当前激活笔记，清空选中（第三栏回到空态）
+                    if (this.activeNoteId === id) {
+                        this.selectNote(null);
+                    }
+                }
+                return result;
+            } finally {
+                this.loading.save = false;
+            }
+        },
     },
 });

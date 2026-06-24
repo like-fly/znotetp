@@ -160,4 +160,10 @@ export default {
     "note.dialog.confirm": "确定",
     "note.empty.workspace.title": "欢迎使用笔记工作台",
     "note.empty.workspace.desc": "请在左侧选择一个分类，查看对应笔记",
+    "note.context.trash": "移入回收站",
+    "note.context.pin": "置顶笔记",
+    "note.context.unpin": "取消置顶",
+    "note.context.trash.success": "已移入回收站",
+    "note.context.pin.success": "已置顶",
+    "note.context.unpin.success": "已取消置顶",
 };
