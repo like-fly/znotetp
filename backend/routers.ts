@@ -18,6 +18,8 @@ import {
     resetUserPassword,
     userInfo,
 } from "@/api/user";
+import { listNotebooks, createNotebook, updateNotebook } from "@/api/notebook";
+import { listNotes, createNote, updateNote, deleteNote } from "@/api/note";
 import { verifyApiToken } from "@/middleware/auth";
 import type { AppVariables } from "@/types";
 
@@ -68,6 +70,15 @@ userRouter.post("/logout", logout);
 userRouter.post("/change_password", changePassword);
 userRouter.get("/get_user_setting", getUserSetting);
 userRouter.post("/set_user_setting", setUserSetting);
+
+userRouter.get("/notebook/list", listNotebooks);
+userRouter.post("/notebook/create", createNotebook);
+userRouter.post("/notebook/update", updateNotebook);
+
+userRouter.get("/notebook/note/list", listNotes);
+userRouter.post("/notebook/note/create", createNote);
+userRouter.post("/notebook/note/update", updateNote);
+userRouter.post("/notebook/note/delete", deleteNote);
 
 adminRouter.get("/app_info", getAppInfo);
 adminRouter.get("/list_users", listUsers);

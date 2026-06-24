@@ -163,3 +163,61 @@ const { t } = useI18n();
 ```
 
 **添加翻译**: 在 `zh.ts` 和 `en.ts` 中添加相同 key，命名格式 `模块.功能.描述`（如 `login.welcome`、`panel.users.title`）。
+
+---
+
+## API 返回规范
+
+后端所有接口必须统一返回以下 JSON 格式：
+
+```json
+{
+    "code": 200,
+    "msg": "module.action.result",
+    "data": {}
+}
+```
+
+### 字段说明
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `code` | number | 状态码。`200` 表示成功，其他一律使用 `-1000` 表示失败 |
+| `msg` | string | 消息标识符，英文缩写，点分段式命名，用于前端 i18n 翻译 |
+| `data` | any | 返回数据，任意格式，可为空对象 `{}` 或 `null` |
+
+### msg 命名规则
+
+- **必须是英文缩写**，不能是中文
+- 使用**点分段式**命名：`模块.功能.结果`
+- 保持简短，搭配前端翻译文件使用
+
+### 示例
+
+```typescript
+// 成功
+return c.json({ code: 200, msg: "login.success", data: { token, user } });
+return c.json({ code: 200, msg: "user.info.success", data: user });
+return c.json({ code: 200, msg: "success", data: null });
+
+// 失败
+return c.json({ code: -1000, msg: "invalid.password", data: null });
+return c.json({ code: -1000, msg: "user.not.found", data: null });
+return c.json({ code: -1000, msg: "register.not.allowed", data: null });
+```
+
+---
+
+## 代码注释规范
+
+在关键代码处必须添加清晰的中文注释，方便后续维护和理解。
+
+### 需要添加注释的位置
+
+| 位置 | 说明 |
+|------|------|
+| 函数/方法 | 说明功能、参数含义、返回值 |
+| 复杂逻辑 | 解释算法思路、业务规则 |
+| 关键变量 | 说明变量用途、取值范围 |
+| 条件判断 | 解释判断条件的业务含义 |
+| API 接口 | 说明接口功能、请求参数、返回数据 |
