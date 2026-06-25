@@ -76,13 +76,6 @@ const isSaving = ref(false);
 /** 标题输入框 ref（用于自动聚焦） */
 const titleInputRef = ref<HTMLInputElement | null>(null);
 
-/** 切换笔记时的渲染中状态（显示骨架屏，等编辑器 setValue 完成后隐藏） */
-const isSwitchingNote = ref(false);
-/** 跳过下一次 watch(activeNoteId) 的草稿更新（由 handleSelectNote 延迟处理） */
-let skipNextDraftUpdate = false;
-/** 兜底超时定时器：5 秒后强制隐藏骨架屏，防止未预见的死锁 */
-let switchSafetyTimer: ReturnType<typeof setTimeout> | null = null;
-
 // ==================== 侧边栏可调宽度 ====================
 
 /** 第一栏宽度（px），从 localStorage 恢复 */
@@ -300,80 +293,25 @@ const handleOpenCreateNote = async () => {
         content: "",
     });
     if (result) {
-        // 跳过 watch，由这里延迟赋值（与 handleSelectNote 同理，避免抢跑）
-        skipNextDraftUpdate = true;
         noteStore.selectNote(result.id);
-        // 新建笔记内容为空，setValue("") 极快，无需骨架屏
-        requestAnimationFrame(() => {
-            skipNextDraftUpdate = false;
-            draftTitle.value = result.title;
-            draftContent.value = result.content ?? "";
-            // 聚焦标题输入框让用户立即改名
-            nextTick(() => titleInputRef.value?.focus());
-        });
+        // 聚焦标题输入框让用户立即改名
+        await nextTick();
+        titleInputRef.value?.focus();
     }
 };
 
-/**
- * 选中笔记
- *
- * 性能优化：高亮与内容渲染解耦
- * 1. 立即同步选中（列表高亮即时响应，不阻塞）
- * 2. 显示骨架屏占位
- * 3. 单 rAF 延迟赋值 draftContent，让浏览器先 paint 高亮 + 骨架屏
- *    VditorEditor 的 watch 会用 setTimeout(0) 将 setValue 推迟到宏任务，
- *    确保骨架屏先 paint 出来，再执行同步阻塞的 setValue
- */
+/** 选中笔记 */
 const handleSelectNote = (id: number) => {
-    // 1. 立即高亮（同步，不阻塞主线程）
-    skipNextDraftUpdate = true;
     noteStore.selectNote(id);
-
-    // 2. 显示骨架屏
-    isSwitchingNote.value = true;
-
-    // 3. 兜底：5 秒后强制隐藏骨架屏，防止未预见的死锁导致永远卡在加载中
-    if (switchSafetyTimer) clearTimeout(switchSafetyTimer);
-    switchSafetyTimer = setTimeout(() => {
-        isSwitchingNote.value = false;
-        switchSafetyTimer = null;
-    }, 5000);
-
-    // 4. 单 rAF：等微任务 flush（高亮 + 骨架屏 DOM 更新）完成后，在下一帧赋值 draftContent
-    requestAnimationFrame(() => {
-        skipNextDraftUpdate = false;
-        const note = noteStore.activeNote;
-        const newTitle = note?.title ?? "";
-        const newContent = note?.content ?? "";
-
-        draftTitle.value = newTitle;
-
-        // 内容未变化（如快速 A→B→A 回到原笔记），watch 不会触发 rendered 事件
-        // 直接隐藏骨架屏，不等待编辑器渲染
-        if (newContent === draftContent.value) {
-            isSwitchingNote.value = false;
-            if (switchSafetyTimer) {
-                clearTimeout(switchSafetyTimer);
-                switchSafetyTimer = null;
-            }
-            return;
-        }
-
-        draftContent.value = newContent;
-        // VditorEditor watch 会在 setTimeout(0) 中执行 setValue
-        // 完成后通过 @rendered 事件隐藏骨架屏
-    });
 };
 
 /**
  * 同步草稿状态
  * 切换笔记时，从 noteStore.activeNote 读取最新值写入草稿
- * 注意：handleSelectNote 会跳过此 watch（skipNextDraftUpdate），自行延迟赋值以实现骨架屏
  */
 watch(
     () => noteStore.activeNoteId,
     () => {
-        if (skipNextDraftUpdate) return;
         const note = noteStore.activeNote;
         draftTitle.value = note?.title ?? "";
         draftContent.value = note?.content ?? "";
@@ -383,15 +321,6 @@ watch(
 /** 编辑器内容变更 → 暂存到草稿 */
 const handleEditorChange = (value: string) => {
     draftContent.value = value;
-};
-
-/** 编辑器内容渲染完成，隐藏骨架屏并清除兜底定时器 */
-const handleEditorRendered = () => {
-    isSwitchingNote.value = false;
-    if (switchSafetyTimer) {
-        clearTimeout(switchSafetyTimer);
-        switchSafetyTimer = null;
-    }
 };
 
 /** 保存笔记（标题 + 内容） */
@@ -554,21 +483,10 @@ const handleSaveTitle = async () => {
 
         <!-- 编辑器主体 -->
         <div class="flex-1 overflow-hidden bg-white px-6 pb-6 pt-0">
-          <!-- 骨架屏：切换笔记时显示，等编辑器渲染完成后隐藏 -->
-          <div
-            v-if="isSwitchingNote"
-            class="flex h-full flex-col items-center justify-center gap-3"
-          >
-            <NSpin size="medium" />
-            <span class="text-sm text-slate-400">{{ t("note.editor.loading") }}</span>
-          </div>
-          <!-- 编辑器：保持挂载，用 v-show 控制可见性（避免重新初始化 Vditor） -->
           <NoteEditor
-            v-show="!isSwitchingNote"
             :model-value="draftContent"
             height="100%"
             @update:model-value="handleEditorChange"
-            @rendered="handleEditorRendered"
           />
         </div>
       </template>

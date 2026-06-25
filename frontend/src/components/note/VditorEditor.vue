@@ -24,8 +24,6 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: "update:modelValue", value: string): void;
     (e: "ready"): void;
-    /** 内容渲染完成（setValue 执行完毕后触发，用于隐藏骨架屏） */
-    (e: "rendered"): void;
 }>();
 
 /** 标记是否由内部触发的内容更新，避免循环同步 */
@@ -36,9 +34,6 @@ const editorRef = ref<HTMLDivElement>();
 
 /** Vditor 实例引用 */
 let vditor: Vditor | null = null;
-
-/** 待执行的 setValue 定时器（用于取消 pending 的延迟渲染，快速连续切换笔记时只保留最后一次） */
-let setValueTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * onMounted 阶段创建 Vditor 实例
@@ -68,7 +63,8 @@ onMounted(() => {
             },
             hljs: {
                 style: "github",
-                lineNumber: true,
+                enable: true,
+                lineNumber: true
             },
             markdown: {
                 // autoSpace: true,
@@ -89,60 +85,25 @@ onMounted(() => {
 
 /**
  * 监听外部值变化（切换笔记时同步到编辑器）
- *
- * 关键性能优化：用 setTimeout(0) 将 setValue 推迟到宏任务执行。
- * Vue watch 默认 flush:'pre'，回调在微任务中执行（paint 之前），
- * 若直接调用 setValue 会阻塞当帧 paint，导致高亮/骨架屏无法及时显示。
- * setTimeout(0) 让浏览器在微任务 flush（更新 DOM）后先 paint 一帧，
- * 再在宏任务中执行同步阻塞的 setValue。
+ * 使用 isInternalUpdate 标记避免循环更新
  */
 watch(
     () => props.modelValue,
     (val) => {
-        if (isInternalUpdate) {
-            // 内部更新已渲染，无需再 setValue，通知父组件完成
-            emit("rendered");
-            return;
-        }
-        if (!vditor) {
-            // 编辑器未初始化，无法渲染，通知父组件完成
-            emit("rendered");
-            return;
-        }
-
-        // 取消上一个 pending 的 setValue（快速连续切换笔记时只保留最后一次）
-        if (setValueTimer) {
-            clearTimeout(setValueTimer);
-            setValueTimer = null;
-        }
-
+        if (isInternalUpdate) return;
+        if (!vditor) return;
         if (val !== vditor.getValue()) {
-            setValueTimer = setTimeout(() => {
-                setValueTimer = null;
-                if (!vditor || isInternalUpdate) {
-                    emit("rendered");
-                    return;
-                }
-                isInternalUpdate = true;
-                vditor.setValue(val || "");
-                emit("rendered");
-                nextTick(() => {
-                    isInternalUpdate = false;
-                });
-            }, 0);
-        } else {
-            // 内容未变化（如切回同一篇），直接通知完成
-            emit("rendered");
+            isInternalUpdate = true;
+            vditor.setValue(val || "");
+            nextTick(() => {
+                isInternalUpdate = false;
+            });
         }
     },
 );
 
-/** 组件卸载时清除定时器并销毁 Vditor 实例，释放资源 */
+/** 组件卸载时销毁 Vditor 实例，释放资源 */
 onBeforeUnmount(() => {
-    if (setValueTimer) {
-        clearTimeout(setValueTimer);
-        setValueTimer = null;
-    }
     vditor?.destroy();
     vditor = null;
 });

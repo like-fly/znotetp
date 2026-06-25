@@ -174,7 +174,6 @@ export default {
     "note.editor.saving": "保存中...",
     "note.editor.save_failed": "保存失败",
     "note.editor.unsaved": "未保存",
-    "note.editor.loading": "内容渲染中...",
     "note.meta.created_at": "创建于",
     "note.meta.updated_at": "修改于",
     "note.meta.notebook": "所在分类",

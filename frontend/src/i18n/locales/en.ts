@@ -174,7 +174,6 @@ export default {
     "note.editor.saving": "Saving...",
     "note.editor.save_failed": "Save failed",
     "note.editor.unsaved": "Unsaved",
-    "note.editor.loading": "Rendering content...",
     "note.meta.created_at": "Created at",
     "note.meta.updated_at": "Updated at",
     "note.meta.notebook": "Notebook",
