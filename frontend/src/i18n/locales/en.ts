@@ -192,4 +192,13 @@ export default {
     "import.notebook_required": "Please select a target notebook",
     "import.file_required": "Please upload a ZIP file",
     "import.notebook_not_found": "Notebook not found or access denied",
+    "import.title": "Import Notes",
+    "import.upload_hint": "Click or drag ZIP file here",
+    "import.file_limit": "Supports .zip format, max 10MB",
+    "import.start": "Start Import",
+    "import.select_file": "Please select a file first",
+    "import.file_too_large": "File size cannot exceed 10MB",
+    "import.invalid_format": "Only .zip files are supported",
+    "import.failed": "Import failed, please try again",
+    "import.no_notebook": "Please select a notebook first",
 };

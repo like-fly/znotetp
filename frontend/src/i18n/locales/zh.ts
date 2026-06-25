@@ -192,4 +192,13 @@ export default {
     "import.notebook_required": "请选择目标笔记本",
     "import.file_required": "请上传 ZIP 文件",
     "import.notebook_not_found": "笔记本不存在或无权访问",
+    "import.title": "导入笔记",
+    "import.upload_hint": "点击或拖拽 ZIP 文件到此处",
+    "import.file_limit": "支持 .zip 格式，文件不超过 10MB",
+    "import.start": "开始导入",
+    "import.select_file": "请先选择文件",
+    "import.file_too_large": "文件大小不能超过 10MB",
+    "import.invalid_format": "仅支持 .zip 格式文件",
+    "import.failed": "导入失败，请重试",
+    "import.no_notebook": "请先选择笔记本",
 };

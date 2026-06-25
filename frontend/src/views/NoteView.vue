@@ -21,6 +21,7 @@ import NoteList from "@/components/note/NoteList.vue";
 import NoteEditor from "@/components/note/NoteEditor.vue";
 import NoteMetaBar from "@/components/note/NoteMetaBar.vue";
 import CreateNotebookDialog from "@/components/note/dialogs/CreateNotebookDialog.vue";
+import ImportDialog from "@/components/note/dialogs/ImportDialog.vue";
 import CategoryContextMenu from "@/components/note/CategoryContextMenu.vue";
 import { useNoteStore } from "@/stores/note";
 import { useUserStore } from "@/stores/user";
@@ -41,6 +42,8 @@ const userStore = useUserStore();
 const showCreateNotebook = ref(false);
 /** 新建子分类 Dialog 显隐 */
 const showCreateCategory = ref(false);
+/** 导入 Dialog 显隐 */
+const showImportDialog = ref(false);
 /** 新建子分类时，传入的父分类信息 */
 const newCategoryParent = ref<{ id: number; name: string } | null>(null);
 
@@ -464,19 +467,29 @@ const handleSaveTitle = async () => {
         />
       </div>
 
-      <!-- 分类区域标题栏：我的笔记 + 新建分类按钮 -->
+      <!-- 分类区域标题栏：我的笔记 + 导入按钮 + 新建分类按钮 -->
       <div class="flex items-center justify-between border-b border-slate-700/60 px-3 py-2">
         <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
           {{ t("note.category.header") }}
         </span>
-        <button
-          class="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition hover:bg-slate-700/60 hover:text-blue-300"
-          :disabled="noteStore.activeNotebookId === null"
-          :title="t('note.category.add_child')"
-          @click="handleAddTopCategory"
-        >
-          <ZIcon name="ri:add-line" :size="14" color="currentColor" />
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            class="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition hover:bg-slate-700/60 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="noteStore.activeNotebookId === null"
+            :title="t('import.title')"
+            @click="showImportDialog = true"
+          >
+            <ZIcon name="ri:upload-line" :size="14" color="currentColor" />
+          </button>
+          <button
+            class="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition hover:bg-slate-700/60 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="noteStore.activeNotebookId === null"
+            :title="t('note.category.add_child')"
+            @click="handleAddTopCategory"
+          >
+            <ZIcon name="ri:add-line" :size="14" color="currentColor" />
+          </button>
+        </div>
       </div>
 
       <!-- 分类树 -->
@@ -616,6 +629,12 @@ const handleSaveTitle = async () => {
       :parent-id="newCategoryParent?.id ?? null"
       :parent-name="newCategoryParent?.name"
       @confirm="handleConfirmCreateCategory"
+    />
+
+    <!-- 导入 ZIP -->
+    <ImportDialog
+      v-model:show="showImportDialog"
+      :notebook-id="noteStore.activeNotebookId"
     />
   </div>
 </template>
