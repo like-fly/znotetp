@@ -78,3 +78,20 @@ export const sortNotes = async (items: SortNoteItem[]): Promise<Note[] | null> =
     }
     return null;
 };
+
+/**
+ * 全文搜索笔记（FTS5 + trigram）
+ * 搜索范围：指定顶层笔记本下所有子分类的笔记
+ * @param notebookId 顶层笔记本 ID
+ * @param keyword    关键词（最少 3 字符）
+ * @returns 匹配的笔记列表（按 BM25 相关性排序，最多 50 条），失败返回 null
+ */
+export const searchNotes = async (notebookId: number, keyword: string): Promise<Note[] | null> => {
+    const res = await req.get<ApiResult<Note[]>>("/api/user/note/search", {
+        params: { notebook_id: notebookId, keyword },
+    });
+    if (res.data?.code === 200) {
+        return res.data.data ?? [];
+    }
+    return null;
+};

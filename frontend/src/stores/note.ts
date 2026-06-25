@@ -17,6 +17,7 @@ interface LoadingState {
     tree: boolean;     // 笔记本树加载中
     notes: boolean;    // 笔记列表加载中
     save: boolean;     // 创建/更新操作中
+    search: boolean;   // 全文搜索中
 }
 
 /** sessionStorage 存储 key 常量 */
@@ -140,11 +141,18 @@ export const useNoteStore = defineStore("note", {
         activeCategoryId: readSessionId(SESSION_KEYS.category),
         /** 当前选中的笔记 id（优先从 sessionStorage 恢复） */
         activeNoteId: readSessionId(SESSION_KEYS.note),
+        /** 是否处于搜索态（第二栏显示搜索结果而非分类列表） */
+        searchMode: false,
+        /** 当前搜索关键词 */
+        searchKeyword: "",
+        /** 搜索结果列表（跨分类，按 BM25 相关性排序） */
+        searchResults: [] as Note[],
         /** 加载状态 */
         loading: {
             tree: false,
             notes: false,
             save: false,
+            search: false,
         } as LoadingState,
     }),
 
@@ -167,22 +175,33 @@ export const useNoteStore = defineStore("note", {
 
         /**
          * 当前选中的笔记
+         * 优先从分类缓存中查找；搜索态下也搜索 searchResults
          */
         activeNote(state): Note | null {
             if (state.activeNoteId === null) return null;
+            // 先从分类缓存查找
             for (const list of Object.values(state.notesByCategory)) {
                 const found = list.find((n) => n.id === state.activeNoteId);
+                if (found) return found;
+            }
+            // 搜索态下从搜索结果中查找（覆盖未加载过分类的笔记）
+            if (state.searchMode) {
+                const found = state.searchResults.find((n) => n.id === state.activeNoteId);
                 if (found) return found;
             }
             return null;
         },
 
         /**
-         * 第二栏展示用：当前选中分类下的直属笔记列表
-         * 只取该分类自身的笔记（不含后代分类），排除软删除后排序
+         * 第二栏展示用：搜索态返回搜索结果，否则返回当前选中分类下的直属笔记列表
+         *
+         * 正常态：只取该分类自身的笔记（不含后代分类），排除软删除后排序
          * 排序口径与后端 listNotes 一致：置顶在前 → sort_order 升序 → 创建时间倒序
          */
         displayedNotes(state): Note[] {
+            // 搜索态：直接返回搜索结果（已按 BM25 排序，不重新排序）
+            if (state.searchMode) return state.searchResults;
+
             if (state.activeCategoryId === null) return [];
 
             const list = state.notesByCategory[state.activeCategoryId] ?? [];
@@ -193,6 +212,17 @@ export const useNoteStore = defineStore("note", {
                     if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;       // sort_order 升序
                     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // 创建时间倒序
                 });
+        },
+
+        /**
+         * 根据 notebook_id（分类 id）查询分类名称
+         * 用于搜索结果中显示笔记所属分类
+         */
+        getCategoryName(state): (notebookId: number) => string {
+            return (notebookId: number) => {
+                const node = findNodeById(state.notebookTree, notebookId);
+                return node?.title ?? "";
+            };
         },
     },
 
@@ -254,12 +284,15 @@ export const useNoteStore = defineStore("note", {
 
         /**
          * 切换顶层笔记本
-         * 切换后重置分类选中状态，同步写入 sessionStorage
+         * 切换后重置分类选中状态，清空搜索态，同步写入 sessionStorage
          */
         switchNotebook(id: number) {
             this.activeNotebookId = id;
             this.activeCategoryId = null;
             this.activeNoteId = null;
+            this.searchMode = false;
+            this.searchKeyword = "";
+            this.searchResults = [];
             writeSessionId(SESSION_KEYS.notebook, id);
             writeSessionId(SESSION_KEYS.category, null);
             writeSessionId(SESSION_KEYS.note, null);
@@ -381,7 +414,7 @@ export const useNoteStore = defineStore("note", {
 
         /**
          * 更新笔记（部分更新）
-         * 更新成功后同步更新本地缓存
+         * 更新成功后同步更新本地缓存（含分类缓存和搜索结果）
          */
         async updateNote(
             id: number,
@@ -391,7 +424,7 @@ export const useNoteStore = defineStore("note", {
             try {
                 const result = await noteApi.updateNote(id, payload);
                 if (result) {
-                    // 同步更新本地缓存中对应的笔记
+                    // 同步更新分类缓存中对应的笔记
                     for (const cid of Object.keys(this.notesByCategory)) {
                         const list = this.notesByCategory[Number(cid)];
                         const idx = list.findIndex((n) => n.id === id);
@@ -399,6 +432,15 @@ export const useNoteStore = defineStore("note", {
                             list[idx] = result;
                             this.notesByCategory = { ...this.notesByCategory };
                             break;
+                        }
+                    }
+                    // 搜索态下同步更新搜索结果列表
+                    if (this.searchMode) {
+                        const sidx = this.searchResults.findIndex((n) => n.id === id);
+                        if (sidx !== -1) {
+                            this.searchResults = this.searchResults.map((n, i) =>
+                                i === sidx ? result : n,
+                            );
                         }
                     }
                 }
@@ -465,6 +507,33 @@ export const useNoteStore = defineStore("note", {
             } finally {
                 this.loading.save = false;
             }
+        },
+
+        /**
+         * 全文搜索笔记（FTS5 + trigram）
+         * 搜索当前顶层笔记本下所有子分类的笔记，结果替换第二栏列表
+         * @param keyword 搜索关键词（最少 3 字符）
+         */
+        async searchNotes(keyword: string) {
+            if (this.activeNotebookId === null) return;
+            this.loading.search = true;
+            this.searchMode = true;
+            this.searchKeyword = keyword;
+            try {
+                const results = await noteApi.searchNotes(this.activeNotebookId, keyword);
+                this.searchResults = results ?? [];
+            } finally {
+                this.loading.search = false;
+            }
+        },
+
+        /**
+         * 清空搜索，恢复分类列表
+         */
+        clearSearch() {
+            this.searchMode = false;
+            this.searchKeyword = "";
+            this.searchResults = [];
         },
     },
 });

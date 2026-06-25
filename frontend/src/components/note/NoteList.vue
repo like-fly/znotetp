@@ -2,15 +2,21 @@
 /**
  * 第二栏：笔记列表
  *
- * 顶部：搜索框（前端按标题过滤）+ 新建笔记按钮
+ * 顶部：搜索框（FTS5 全文搜索，防抖 300ms）+ 新建笔记按钮
  * 主体：笔记卡片列表（来自 store.displayedNotes）
+ *   - 正常态：当前分类下的笔记，可拖拽排序
+ *   - 搜索态：跨分类搜索结果，不可拖拽，显示分类名
  * 空态：友好提示
+ *
+ * 搜索逻辑：
+ *   - 关键词 >= 3 字符：防抖 300ms 后调后端 FTS5 搜索
+ *   - 关键词 < 3 字符 / 清空 / ESC：退出搜索态，恢复分类列表
  *
  * 右键笔记项可弹出 NoteContextMenu 菜单，调用 store action
  * 完成移入回收站 / 置顶笔记（智能切换），列表自动刷新。
  */
-import { computed, ref, watch } from "vue";
-import { NInput, NSpin, useMessage } from "naive-ui";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { NButton, NInput, NSpin, useMessage } from "naive-ui";
 import { VueDraggable } from "vue-draggable-plus";
 import { useI18n } from "vue-i18n";
 import ZIcon from "@/components/DynamicIcon.vue";
@@ -36,8 +42,8 @@ const emit = defineEmits<{
     (e: "create"): void;
 }>();
 
-/** 搜索关键词 */
-const keyword = ref("");
+/** 搜索关键词（双向绑定 NInput） */
+const keyword = ref(noteStore.searchKeyword);
 
 /**
  * 本地笔记列表（可被 VueDraggable 直接 mutate）
@@ -53,22 +59,69 @@ watch(
     { immediate: true },
 );
 
-/** 过滤后的笔记列表（标题模糊匹配，基于 localNotes） */
-const filteredNotes = computed(() => {
-    const kw = keyword.value.trim().toLowerCase();
-    if (!kw) return localNotes.value;
-    return localNotes.value.filter((n) => n.title.toLowerCase().includes(kw));
-});
+/** 是否处于搜索态（来自 store） */
+const isSearchMode = computed(() => noteStore.searchMode);
+
+/** 搜索加载中 */
+const isSearching = computed(() => noteStore.loading.search);
+
+/** 搜索结果条数 */
+const searchCount = computed(() => noteStore.searchResults.length);
 
 /**
  * 是否允许拖拽排序
- * 条件：无搜索关键词 + 列表非空
- * （不再聚合后代分类，所有笔记天然同属一个 notebook，无需额外校验）
+ * 条件：非搜索态 + 列表非空
  */
 const canDrag = computed(() => {
-    if (keyword.value.trim()) return false;
+    if (isSearchMode.value) return false;
     return localNotes.value.length > 0;
 });
+
+// ==================== 搜索防抖 ====================
+
+/** 防抖定时器引用 */
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * 关键词变化时触发搜索（防抖 300ms）
+ * - 关键词 >= 3 字符：调后端 FTS5 搜索
+ * - 关键词 < 3 字符：退出搜索态，恢复分类列表
+ */
+watch(keyword, (val) => {
+    const kw = val.trim();
+    // 清除上一次防抖
+    if (searchTimer) {
+        clearTimeout(searchTimer);
+        searchTimer = null;
+    }
+    // 关键词不足 3 字符：退出搜索态
+    if (kw.length < 3) {
+        if (noteStore.searchMode) {
+            noteStore.clearSearch();
+        }
+        return;
+    }
+    // 防抖 300ms 后调后端搜索
+    searchTimer = setTimeout(() => {
+        noteStore.searchNotes(kw);
+    }, 300);
+});
+
+/** 组件卸载时清理防抖定时器 */
+onBeforeUnmount(() => {
+    if (searchTimer) {
+        clearTimeout(searchTimer);
+        searchTimer = null;
+    }
+});
+
+/**
+ * ESC 键清空搜索关键词，退出搜索态
+ */
+const handleKeydownEsc = () => {
+    keyword.value = "";
+    noteStore.clearSearch();
+};
 
 /**
  * 拖拽结束回调
@@ -134,28 +187,63 @@ const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
       <NInput
         v-model:value="keyword"
         :placeholder="t('note.note.search.placeholder')"
-        size="small"
         clearable
+        @keydown.escape="handleKeydownEsc"
       >
         <template #prefix>
           <ZIcon name="ri:search-line" :size="14" color="#94a3b8" />
         </template>
       </NInput>
-      <button
-        class="flex h-8 shrink-0 items-center gap-1 rounded-md bg-blue-600 px-3 text-sm text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-        :disabled="disabledCreate"
+      <NButton
+        type="primary"
+        :disabled="disabledCreate || isSearchMode"
         @click="emit('create')"
       >
-        <ZIcon name="ri:add-line" :size="14" color="currentColor" />
+        <template #icon>
+          <ZIcon name="ri:add-line" :size="14" color="currentColor" />
+        </template>
         <span class="hidden sm:inline">{{ t("note.note.create.button") }}</span>
-      </button>
+      </NButton>
     </div>
 
     <!-- 列表主体 -->
     <div class="flex-1 overflow-y-auto bg-[#f7f8fa] p-3">
-      <NSpin v-if="loading" class="block py-12" />
+      <NSpin v-if="loading || isSearching" class="block py-12" />
 
-      <!-- 可拖拽列表：无搜索 + 同分类时启用 -->
+      <!-- 搜索态：标题栏 + 搜索结果列表/空态 -->
+      <template v-else-if="isSearchMode">
+        <!-- 搜索结果标题栏 -->
+        <div class="mb-2 flex items-center gap-1.5 border-b border-slate-200/60 pb-2 text-xs text-slate-500">
+          <ZIcon name="ri:search-line" :size="12" color="#94a3b8" />
+          <span>{{ t("note.note.search.results") }}</span>
+          <span class="text-slate-400">({{ searchCount }})</span>
+        </div>
+
+        <!-- 搜索结果列表 -->
+        <div v-if="localNotes.length > 0" class="space-y-2">
+          <NoteListItem
+            v-for="note in localNotes"
+            :key="note.id"
+            :note="note"
+            :active="activeId === note.id"
+            :category-name="noteStore.getCategoryName(note.notebook_id)"
+            @select="(id: number) => emit('select', id)"
+            @contextmenu="handleContextMenu"
+          />
+        </div>
+
+        <!-- 搜索无结果空态 -->
+        <div v-else class="flex h-full flex-col items-center justify-center gap-3 py-16 text-center">
+          <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
+            <ZIcon name="ri:sticky-note-line" :size="28" color="#94a3b8" />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-600">{{ t("note.note.search.no_results") }}</p>
+          </div>
+        </div>
+      </template>
+
+      <!-- 可拖拽列表：非搜索态 + 同分类时启用 -->
       <VueDraggable
         v-else-if="canDrag && localNotes.length > 0"
         v-model="localNotes"
@@ -176,10 +264,10 @@ const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
         />
       </VueDraggable>
 
-      <!-- 普通列表：搜索中或聚合视图时不可拖拽 -->
-      <div v-else-if="filteredNotes.length > 0" class="space-y-2">
+      <!-- 普通列表（不可拖拽） -->
+      <div v-else-if="localNotes.length > 0" class="space-y-2">
         <NoteListItem
-          v-for="note in filteredNotes"
+          v-for="note in localNotes"
           :key="note.id"
           :note="note"
           :active="activeId === note.id"

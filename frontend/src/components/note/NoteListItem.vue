@@ -14,6 +14,8 @@ const props = defineProps<{
     active: boolean;
     /** 是否可拖拽（显示拖拽把手）。置顶笔记由父组件传 false 隐藏把手 */
     draggable?: boolean;
+    /** 所属分类名（搜索态下显示，正常态不传则不显示） */
+    categoryName?: string;
 }>();
 
 const emit = defineEmits<{
@@ -94,9 +96,13 @@ const isPinned = computed(() => props.note.is_pinned === 1);
         {{ summary || "\u00A0" }}
       </p>
 
-      <!-- 时间 -->
-      <div class="mt-1.5 text-[11px] text-slate-400">
-        {{ formatTime(note.updated_at) }}
+      <!-- 时间 + 分类名 -->
+      <div class="mt-1.5 flex items-center gap-2 text-[11px] text-slate-400">
+        <span>{{ formatTime(note.updated_at) }}</span>
+        <span v-if="categoryName" class="flex items-center gap-0.5">
+          <ZIcon name="ri:folder-3-line" :size="11" color="#cbd5e1" />
+          {{ categoryName }}
+        </span>
       </div>
     </div>
   </div>
