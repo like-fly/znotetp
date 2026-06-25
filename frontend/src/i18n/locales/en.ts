@@ -139,6 +139,8 @@ export default {
     "note.detail.not_found": "Note not found",
     "note.detail.success": "Get note detail success",
     "note.trash.list.success": "Trash list loaded",
+    "note.trash.title": "Trash",
+    "note.trash.empty": "Trash is empty",
     "note.versions.list.note_id_required": "Note ID is required",
     "note.versions.list.note_not_found": "Note not found",
     "note.versions.list.success": "Version list loaded",

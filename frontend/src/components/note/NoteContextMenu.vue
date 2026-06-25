@@ -49,28 +49,31 @@ const dropdownThemeOverrides = {
 const isPinned = computed(() => props.note?.is_pinned === 1);
 
 /** 菜单选项配置 */
-const menuOptions = computed(() => [
-    {
-        label: t("note.context.open_new_window"),
-        key: "open_new_window",
-        icon: () => h(ZIcon, { name: "ri:external-link-line", size: 16 }),
-    },
-    {
-        label: t("note.context.move_note"),
-        key: "move",
-        icon: () => h(ZIcon, { name: "ri:arrow-right-circle-line", size: 16 }),
-    },
-    {
-        label: isPinned.value ? t("note.context.unpin") : t("note.context.pin"),
-        key: "pin",
-        icon: () => h(ZIcon, { name: "ri:pushpin-2-line", size: 16 }),
-    },
-    {
-        label: t("note.context.trash"),
-        key: "trash",
-        icon: () => h(ZIcon, { name: "ri:delete-bin-line", size: 16 }),
-    },
-]);
+const menuOptions = computed(() => {
+    const isDeleted = props.note?.is_deleted === 1;
+    return [
+        {
+            label: t("note.context.open_new_window"),
+            key: "open_new_window",
+            icon: () => h(ZIcon, { name: "ri:external-link-line", size: 16 }),
+        },
+        {
+            label: t("note.context.move_note"),
+            key: "move",
+            icon: () => h(ZIcon, { name: "ri:arrow-right-circle-line", size: 16 }),
+        },
+        {
+            label: isPinned.value ? t("note.context.unpin") : t("note.context.pin"),
+            key: "pin",
+            icon: () => h(ZIcon, { name: "ri:pushpin-2-line", size: 16 }),
+        },
+        {
+            label: t("note.context.trash"),
+            key: "trash",
+            icon: () => h(ZIcon, { name: "ri:delete-bin-line", size: 16 }),
+        },
+    ].filter((item) => !(isDeleted && (item.key === "trash" || item.key === "open_new_window" || item.key === "pin")));
+});
 
 /** NDropdown 选中某项时：转发给父组件处理，并关闭菜单 */
 const handleSelect = (key: string) => {

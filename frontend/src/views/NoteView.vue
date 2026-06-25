@@ -284,6 +284,11 @@ const hasActiveNote = computed(() => noteStore.activeNoteId !== null);
 /** 笔记详情是否加载中 */
 const noteDetailLoading = computed(() => noteStore.loading.noteDetail);
 
+/** 第二栏加载状态（回收站模式用 trash 加载态，否则用 notes 加载态） */
+const noteListLoading = computed(() => {
+    return noteStore.trashMode ? noteStore.loading.trash : noteStore.loading.notes;
+});
+
 // ==================== 数据加载 ====================
 
 /**
@@ -492,6 +497,12 @@ const handleMobileBack = () => {
     router.push('/note');
 };
 
+/** 进入回收站模式 */
+const handleEnterTrash = async () => {
+    await noteStore.enterTrashMode();
+    if (isMobile.value) drawerOpen.value = false;
+};
+
 /**
  * 同步草稿状态
  * 监听 activeNote 而非 activeNoteId，避免 selectNote async 期间提前 flush 空白数据
@@ -618,15 +629,27 @@ const handleSaveTitle = async () => {
       <!-- 分类树 -->
       <div class="flex-1 overflow-y-auto p-2">
         <NSpin v-if="noteStore.loading.tree" class="block py-6" />
-        <CategoryTree
-          v-else
-          :tree="currentCategoryTree"
-          :active-id="noteStore.activeCategoryId"
-          :is-mobile="isMobile"
-          @select="handleSelectCategory"
-          @request-dialog="(pid: number, pname: string) => openCreateCategoryDialog(pid, pname)"
-          @contextmenu="handleCategoryContextMenu"
-        />
+        <template v-else>
+          <CategoryTree
+            :tree="currentCategoryTree"
+            :active-id="noteStore.activeCategoryId"
+            :is-mobile="isMobile"
+            @select="handleSelectCategory"
+            @request-dialog="(pid: number, pname: string) => openCreateCategoryDialog(pid, pname)"
+            @contextmenu="handleCategoryContextMenu"
+          />
+          <!-- 回收站入口 -->
+          <div class="mt-2 border-t border-slate-700/60 pt-2">
+            <div
+              class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition"
+              :class="noteStore.trashMode ? 'bg-blue-500/15 text-blue-300' : 'text-slate-400 hover:bg-slate-700/60 hover:text-slate-200'"
+              @click="handleEnterTrash"
+            >
+              <ZIcon name="ri:delete-bin-line" :size="16" color="currentColor" />
+              <span>{{ t('note.trash.title') }}</span>
+            </div>
+          </div>
+        </template>
       </div>
     </aside>
 
@@ -641,8 +664,9 @@ const handleSaveTitle = async () => {
       <NoteList
         :notes="noteStore.displayedNotes"
         :active-id="noteStore.activeNoteId"
-        :loading="noteStore.loading.notes"
-        :disabled-create="noteStore.activeCategoryId === null"
+        :loading="noteListLoading"
+        :disabled-create="noteStore.activeCategoryId === null || noteStore.trashMode"
+        :trash-mode="noteStore.trashMode"
         :is-mobile="isMobile"
         @select="handleSelectNote"
         @create="handleOpenCreateNote"
@@ -883,15 +907,27 @@ const handleSaveTitle = async () => {
           </div>
           <div class="flex-1 overflow-y-auto p-2">
             <NSpin v-if="noteStore.loading.tree" class="block py-6" />
-            <CategoryTree
-              v-else
-              :tree="currentCategoryTree"
-              :active-id="noteStore.activeCategoryId"
-              :is-mobile="isMobile"
-              @select="handleSelectCategory"
-              @request-dialog="(pid: number, pname: string) => openCreateCategoryDialog(pid, pname)"
-              @contextmenu="handleCategoryContextMenu"
-            />
+            <template v-else>
+              <CategoryTree
+                :tree="currentCategoryTree"
+                :active-id="noteStore.activeCategoryId"
+                :is-mobile="isMobile"
+                @select="handleSelectCategory"
+                @request-dialog="(pid: number, pname: string) => openCreateCategoryDialog(pid, pname)"
+                @contextmenu="handleCategoryContextMenu"
+              />
+              <!-- 回收站入口 -->
+              <div class="mt-2 border-t border-slate-700/60 pt-2">
+                <div
+                  class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition"
+                  :class="noteStore.trashMode ? 'bg-blue-500/15 text-blue-300' : 'text-slate-400 hover:bg-slate-700/60 hover:text-slate-200'"
+                  @click="handleEnterTrash"
+                >
+                  <ZIcon name="ri:delete-bin-line" :size="16" color="currentColor" />
+                  <span>{{ t('note.trash.title') }}</span>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -902,8 +938,9 @@ const handleSaveTitle = async () => {
       <NoteList
         :notes="noteStore.displayedNotes"
         :active-id="noteStore.activeNoteId"
-        :loading="noteStore.loading.notes"
-        :disabled-create="noteStore.activeCategoryId === null"
+        :loading="noteListLoading"
+        :disabled-create="noteStore.activeCategoryId === null || noteStore.trashMode"
+        :trash-mode="noteStore.trashMode"
         :is-mobile="isMobile"
         @select="handleSelectNote"
         @create="handleOpenCreateNote"

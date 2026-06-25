@@ -36,6 +36,8 @@ const props = defineProps<{
     loading: boolean;
     /** 是否禁用"新建笔记"按钮（如未选中分类时） */
     disabledCreate?: boolean;
+    /** 是否为回收站模式（隐藏工具栏、禁用拖拽、显示专用空态） */
+    trashMode?: boolean;
     /** 是否为移动端视口 */
     isMobile: boolean;
 }>();
@@ -77,6 +79,7 @@ const searchCount = computed(() => noteStore.searchResults.length);
  */
 const canDrag = computed(() => {
     if (isSearchMode.value) return false;
+    if (props.trashMode) return false;
     return localNotes.value.length > 0;
 });
 
@@ -219,8 +222,8 @@ const handleMoveCancel = () => {
 
 <template>
   <div class="flex h-full flex-col">
-    <!-- 顶部工具栏：搜索 + 新建 -->
-    <div class="flex shrink-0 items-center gap-2 border-b border-slate-200/60 bg-white px-3 py-2.5">
+    <!-- 顶部工具栏：搜索 + 新建（回收站模式隐藏） -->
+    <div v-if="!trashMode" class="flex shrink-0 items-center gap-2 border-b border-slate-200/60 bg-white px-3 py-2.5">
       <NInput
         v-model:value="keyword"
         :placeholder="t('note.note.search.placeholder')"
@@ -322,11 +325,11 @@ const handleMoveCancel = () => {
         class="flex h-full flex-col items-center justify-center gap-3 py-16 text-center"
       >
         <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
-          <ZIcon name="ri:sticky-note-line" :size="28" color="#94a3b8" />
+          <ZIcon :name="trashMode ? 'ri:delete-bin-line' : 'ri:sticky-note-line'" :size="28" color="#94a3b8" />
         </div>
         <div>
-          <p class="text-sm font-medium text-slate-600">{{ t("note.note.empty.title") }}</p>
-          <p class="mt-1 text-xs text-slate-400">{{ t("note.note.empty.desc") }}</p>
+          <p class="text-sm font-medium text-slate-600">{{ trashMode ? t('note.trash.empty') : t('note.note.empty.title') }}</p>
+          <p v-if="!trashMode" class="mt-1 text-xs text-slate-400">{{ t('note.note.empty.desc') }}</p>
         </div>
       </div>
     </div>

@@ -140,3 +140,15 @@ export const fetchNoteById = async (id: number): Promise<Note | null> => {
     }
     return null;
 };
+
+/**
+ * 获取回收站笔记列表（最近删除，最多 200 条）
+ * @returns 已软删除的笔记列表，按删除时间倒序
+ */
+export const fetchTrashNotes = async (): Promise<Note[]> => {
+    const res = await req.get<ApiResult<Note[]>>("/api/user/note/trash");
+    if (res.data?.code === 200) {
+        return res.data.data ?? [];
+    }
+    return [];
+};

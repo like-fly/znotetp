@@ -139,6 +139,8 @@ export default {
     "note.detail.not_found": "笔记不存在",
     "note.detail.success": "获取笔记详情成功",
     "note.trash.list.success": "获取回收站列表成功",
+    "note.trash.title": "回收站",
+    "note.trash.empty": "回收站为空",
     "note.versions.list.note_id_required": "缺少笔记 ID",
     "note.versions.list.note_not_found": "笔记不存在",
     "note.versions.list.success": "获取版本列表成功",

@@ -11,7 +11,7 @@
 import { defineStore } from "pinia";
 import * as notebookApi from "@/api/notebook";
 import * as noteApi from "@/api/note";
-import { fetchNoteById } from "@/api/note";
+import { fetchNoteById, fetchTrashNotes } from "@/api/note";
 import type { CreateNotebookPayload, CreateNotePayload, Note, Notebook, NotebookNode, SortNoteItem, SortNotebookItem } from "@/types/note";
 
 interface LoadingState {
@@ -20,6 +20,7 @@ interface LoadingState {
     save: boolean;     // 创建/更新操作中
     search: boolean;   // 全文搜索中
     noteDetail: boolean; // 单条笔记详情加载中
+    trash: boolean;    // 回收站列表加载中
 }
 
 /** sessionStorage 存储 key 常量 */
@@ -217,6 +218,10 @@ export const useNoteStore = defineStore("note", {
         searchKeyword: "",
         /** 搜索结果列表（跨分类，按 BM25 相关性排序） */
         searchResults: [] as Note[],
+        /** 是否处于回收站模式 */
+        trashMode: false,
+        /** 回收站笔记列表（最近删除，最多 200 条） */
+        trashNotes: [] as Note[],
         /** 加载状态 */
         loading: {
             tree: false,
@@ -224,6 +229,7 @@ export const useNoteStore = defineStore("note", {
             save: false,
             search: false,
             noteDetail: false,
+            trash: false,
         } as LoadingState,
     }),
 
@@ -278,6 +284,9 @@ export const useNoteStore = defineStore("note", {
          * 排序口径与后端 listNotes 一致：置顶在前 → sort_order 升序 → 创建时间倒序
          */
         displayedNotes(state): Note[] {
+            // 回收站模式：直接返回回收站列表
+            if (state.trashMode) return state.trashNotes;
+
             // 搜索态：直接返回搜索结果（已按 BM25 排序，不重新排序）
             if (state.searchMode) return state.searchResults;
 
@@ -363,7 +372,7 @@ export const useNoteStore = defineStore("note", {
 
         /**
          * 切换顶层笔记本
-         * 切换后重置分类选中状态，清空搜索态，同步写入 sessionStorage
+         * 切换后重置分类选中状态，清空搜索态和回收站模式，同步写入 sessionStorage
          */
         switchNotebook(id: number) {
             this.activeNotebookId = id;
@@ -372,6 +381,7 @@ export const useNoteStore = defineStore("note", {
             this.searchMode = false;
             this.searchKeyword = "";
             this.searchResults = [];
+            if (this.trashMode) this.exitTrashMode();
             writeSessionId(SESSION_KEYS.notebook, id);
             writeSessionId(SESSION_KEYS.category, null);
             writeSessionId(SESSION_KEYS.note, null);
@@ -379,8 +389,10 @@ export const useNoteStore = defineStore("note", {
 
         /**
          * 选中分类，按需加载该分类下的笔记，同步写入 sessionStorage
+         * 若当前在回收站模式，自动退出
          */
         async selectCategory(id: number | null) {
+            if (this.trashMode) this.exitTrashMode();
             this.activeCategoryId = id;
             this.activeNoteId = null;
             writeSessionId(SESSION_KEYS.category, id);
@@ -780,6 +792,33 @@ export const useNoteStore = defineStore("note", {
             this.searchMode = false;
             this.searchKeyword = "";
             this.searchResults = [];
+        },
+
+        /**
+         * 进入回收站模式
+         * 清空分类/笔记选中，请求回收站列表，切换 trashMode
+         */
+        async enterTrashMode() {
+            this.activeCategoryId = null;
+            this.activeNoteId = null;
+            writeSessionId(SESSION_KEYS.category, null);
+            writeSessionId(SESSION_KEYS.note, null);
+            this.trashMode = true;
+            this.loading.trash = true;
+            try {
+                this.trashNotes = await fetchTrashNotes();
+            } finally {
+                this.loading.trash = false;
+            }
+        },
+
+        /**
+         * 退出回收站模式
+         * 清空 trashMode 和回收站列表
+         */
+        exitTrashMode() {
+            this.trashMode = false;
+            this.trashNotes = [];
         },
     },
 });
