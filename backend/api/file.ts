@@ -44,8 +44,8 @@ export const uploadFiles = async (c: Context) => {
             return c.json({ code: -1000, msg: "file.upload.too_large", data: null });
         }
 
-        // 生成业务唯一标识
-        const fileId = randomString(8);
+        // 生成业务唯一标识（zn- 前缀便于在笔记内容中识别和提取）
+        const fileId = "zn-" + randomString(8);
 
         // 获取扩展名：优先原始文件名，降级到 MIME 推导
         let ext = getExtFromName(item.name);
