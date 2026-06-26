@@ -580,6 +580,10 @@ export const useNoteStore = defineStore("note", {
                             );
                         }
                     }
+                    // 回收站模式下移动笔记（即恢复），从回收站列表中移除
+                    if (this.trashMode) {
+                        this.trashNotes = this.trashNotes.filter((n) => n.id !== id);
+                    }
                 }
                 return result;
             } finally {
