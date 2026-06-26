@@ -615,6 +615,7 @@ export const useNoteStore = defineStore("note", {
         /**
          * 删除笔记本/分类列表（硬删除），同时软删除其下所有笔记
          * 删除成功后从树中移除对应节点，清理相关缓存和选中状态
+         * - 若删的是当前选中的顶层笔记本：自动切到剩余第一个；无剩余则清空选中
          * @param ids 待删除的分类 ID 列表
          */
         async deleteNotebooks(ids: number[]) {
@@ -634,6 +635,26 @@ export const useNoteStore = defineStore("note", {
                         this.activeNoteId = null;
                         writeSessionId(SESSION_KEYS.category, null);
                         writeSessionId(SESSION_KEYS.note, null);
+                    }
+
+                    // 若删除的节点包含当前选中的顶层笔记本：自动切换到剩余第一个；无剩余则清空
+                    // 否则下拉框会指向已删除的 ID，状态不一致
+                    if (this.activeNotebookId !== null && allIds.has(this.activeNotebookId)) {
+                        const next = this.notebookTree[0];
+                        if (next) {
+                            this.switchNotebook(next.id);
+                        } else {
+                            this.activeNotebookId = null;
+                            this.activeCategoryId = null;
+                            this.activeNoteId = null;
+                            this.searchMode = false;
+                            this.searchKeyword = "";
+                            this.searchResults = [];
+                            if (this.trashMode) this.exitTrashMode();
+                            writeSessionId(SESSION_KEYS.notebook, null);
+                            writeSessionId(SESSION_KEYS.category, null);
+                            writeSessionId(SESSION_KEYS.note, null);
+                        }
                     }
 
                     // 清理所有被删分类的笔记缓存

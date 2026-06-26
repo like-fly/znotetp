@@ -353,6 +353,17 @@ const handleOpenCreateNotebook = () => {
     showCreateNotebook.value = true;
 };
 
+/**
+ * 请求删除当前笔记本（由 NotebookSwitcher 的 🗑 按钮触发）
+ * 复用 DeleteNotebookDialog + handleConfirmDelete，与右键删除分类走同一套流程
+ */
+const handleDeleteNotebook = () => {
+    const nb = noteStore.activeNotebook;
+    if (!nb) return;
+    deleteTarget.value = nb;
+    showDeleteDialog.value = true;
+};
+
 /** 提交"新建笔记本" */
 const handleConfirmCreateNotebook = async (title: string) => {
     const result = await noteStore.createNotebook({ title, parent_id: null });
@@ -598,6 +609,7 @@ const handleSaveTitle = async () => {
           :model-value="noteStore.activeNotebookId"
           @update:model-value="handleSwitchNotebook"
           @create="handleOpenCreateNotebook"
+          @delete="handleDeleteNotebook"
         />
       </div>
 
@@ -880,6 +892,7 @@ const handleSaveTitle = async () => {
               :model-value="noteStore.activeNotebookId"
               @update:model-value="handleSwitchNotebook"
               @create="handleOpenCreateNotebook"
+              @delete="handleDeleteNotebook"
             />
           </div>
           <div class="flex items-center justify-between border-b border-slate-700/60 px-2 py-2">
