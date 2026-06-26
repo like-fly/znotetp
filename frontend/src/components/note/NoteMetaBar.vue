@@ -76,7 +76,7 @@ const updatedText = computed(() => formatTime(props.note.updated_at));
       <!-- 回到当前按钮（仅查看历史模式时展示） -->
       <button
         v-if="viewingVersion"
-        class="flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition hover:border-amber-400 hover:bg-amber-100"
+        class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-amber-600 transition hover:bg-amber-50"
         type="button"
         @click="emit('back-to-current')"
       >
@@ -87,7 +87,7 @@ const updatedText = computed(() => formatTime(props.note.updated_at));
       <!-- 历史版本按钮（移动端隐藏） -->
       <button
         v-if="!mobile"
-        class="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600"
+        class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
         type="button"
         @click="emit('history')"
       >
@@ -98,7 +98,7 @@ const updatedText = computed(() => formatTime(props.note.updated_at));
       <!-- 保存按钮（移动端隐藏，改用顶部导航栏按钮） -->
       <button
         v-if="!mobile"
-        class="flex items-center gap-1.5 rounded-md bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
         :disabled="saving"
         @click="emit('save')"
       >
