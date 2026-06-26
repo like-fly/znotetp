@@ -240,4 +240,7 @@ export default {
     "import.invalid_format": "仅支持 .zip 格式文件",
     "import.failed": "导入失败，请重试",
     "import.no_notebook": "请先选择笔记本",
+    "note.permanent_delete.success": "彻底删除成功",
+    "note.permanent_delete.id_required": "缺少笔记 ID",
+    "note.permanent_delete.not_found": "笔记不存在",
 };

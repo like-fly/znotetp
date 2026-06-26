@@ -1,8 +1,11 @@
 import { Context } from "hono";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { unlinkSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { checkNotebookOwnership, checkNoteOwnership } from "@/utils/ownership";
+import { FILES_BASE_PATH } from "@/utils/file";
 
 /**
  * 获取指定分类下的笔记列表
@@ -458,5 +461,127 @@ export const getNoteById = async (c: Context) => {
         code: 200,
         msg: "note.detail.success",
         data: note,
+    });
+};
+
+/**
+ * 彻底删除笔记（硬删除）
+ * id 必传，校验归属后，在事务内删除笔记、历史版本及相关文件记录，
+ * 事务成功后再清理磁盘文件
+ *
+ * 流程：
+ * 1. 校验 id 参数 + 笔记归属（带 user_id 条件防越权）
+ * 2. 查笔记 + 所有历史版本的 content
+ * 3. 正则提取 zn-{8位图片ID}，去重
+ * 4. 查 files 表（带 user_id 过滤）获取 file_path
+ * 5. 事务内依次删除：note_versions → files → notes
+ * 6. 事务成功后，遍历 file_path 清理磁盘文件（失败仅跳过不报错）
+ */
+export const permanentDeleteNote = async (c: Context) => {
+    const uid = Number(c.get("uid"));
+    const payload = await c.req.json();
+
+    const { id } = payload || {};
+
+    if (!id || typeof id !== "number") {
+        return c.json({
+            code: -1000,
+            msg: "note.permanent_delete.id_required",
+            data: null,
+        });
+    }
+
+    // 查询笔记，同时校验归属（带 user_id 条件防越权）
+    const note = await db
+        .select({ content: schema.notes.content })
+        .from(schema.notes)
+        .where(and(
+            eq(schema.notes.id, id),
+            eq(schema.notes.user_id, uid),
+        ))
+        .get();
+
+    if (!note) {
+        return c.json({
+            code: -1000,
+            msg: "note.permanent_delete.not_found",
+            data: null,
+        });
+    }
+
+    // 查询所有历史版本的 content
+    const versions = await db
+        .select({ content: schema.noteVersions.content })
+        .from(schema.noteVersions)
+        .where(eq(schema.noteVersions.note_id, id))
+        .all();
+
+    // 合并笔记内容 + 所有历史版本内容，正则提取 zn-{8位图片ID}
+    const contents = [note.content, ...versions.map((v) => v.content)].filter(Boolean);
+    const fileIdSet = new Set<string>();
+    const reg = /zn-[A-Za-z0-9]{8}/g;
+    for (const text of contents) {
+        const matches = text.matchAll(reg);
+        for (const m of matches) {
+            fileIdSet.add(m[0]);
+        }
+    }
+
+    // 查询关联文件记录（带 user_id 过滤，只删当前用户的文件）
+    const filePaths: string[] = [];
+    if (fileIdSet.size > 0) {
+        const fileRecords = await db
+            .select({ file_path: schema.files.file_path })
+            .from(schema.files)
+            .where(and(
+                inArray(schema.files.file_id, [...fileIdSet]),
+                eq(schema.files.user_id, uid),
+            ))
+            .all();
+        filePaths.push(...fileRecords.map((f) => f.file_path));
+    }
+
+    // 事务：删除历史版本 → 文件记录 → 笔记
+    await db.transaction(async (tx) => {
+        await tx
+            .delete(schema.noteVersions)
+            .where(and(
+                eq(schema.noteVersions.note_id, id),
+                eq(schema.noteVersions.user_id, uid),
+            ));
+
+        if (fileIdSet.size > 0) {
+            await tx
+                .delete(schema.files)
+                .where(and(
+                    inArray(schema.files.file_id, [...fileIdSet]),
+                    eq(schema.files.user_id, uid),
+                ));
+        }
+
+        await tx
+            .delete(schema.notes)
+            .where(and(
+                eq(schema.notes.id, id),
+                eq(schema.notes.user_id, uid),
+            ));
+    });
+
+    // 事务成功后，清理磁盘文件（失败不阻塞返回，仅跳过）
+    for (const relativePath of filePaths) {
+        try {
+            const fullPath = join(FILES_BASE_PATH, relativePath);
+            if (existsSync(fullPath)) {
+                unlinkSync(fullPath);
+            }
+        } catch {
+            // 磁盘文件删除失败不影响结果，跳过
+        }
+    }
+
+    return c.json({
+        code: 200,
+        msg: "note.permanent_delete.success",
+        data: null,
     });
 };

@@ -19,7 +19,7 @@ import {
     userInfo,
 } from "@/api/user";
 import { listNotebooks, getTopLevelNotebooks, createNotebook, updateNotebook, sortNotebooks, deleteNotebooks } from "@/api/notebook";
-import { listNotes, createNote, updateNote, deleteNote, sortNotes, getNoteById, listTrashNotes } from "@/api/note";
+import { listNotes, createNote, updateNote, deleteNote, sortNotes, getNoteById, listTrashNotes, permanentDeleteNote } from "@/api/note";
 import { listNoteVersions, getNoteVersion } from "@/api/note_version";
 import { importZip } from "@/api/import";
 import { uploadFiles } from "@/api/file";
@@ -100,6 +100,7 @@ userRouter.get("/note/versions", listNoteVersions);
 userRouter.get("/note/version", getNoteVersion);
 userRouter.get("/note/detail", getNoteById);
 userRouter.get("/note/trash", listTrashNotes);
+userRouter.post("/note/permanent_delete", permanentDeleteNote);
 
 userRouter.post("/import", importZip);
 userRouter.post("/file/upload", uploadFiles);

@@ -240,4 +240,7 @@ export default {
     "import.invalid_format": "Only .zip files are supported",
     "import.failed": "Import failed, please try again",
     "import.no_notebook": "Please select a notebook first",
+    "note.permanent_delete.success": "Permanently deleted",
+    "note.permanent_delete.id_required": "Note ID is required",
+    "note.permanent_delete.not_found": "Note not found",
 };
