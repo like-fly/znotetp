@@ -186,6 +186,7 @@ export default {
     "menu.notes": "My Notes",
     "note.workspace.title": "Notes Workspace",
     "note.user.profile": "Profile",
+    "note.user.change_password": "Change Password",
     "note.user.back_dashboard": "Back to Dashboard",
     "note.user.logout": "Sign Out",
     "note.notebook.switcher.label": "Current Notebook",

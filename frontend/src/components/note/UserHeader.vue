@@ -4,7 +4,7 @@
  *
  * 功能：
  * 1. 展示头像和昵称（无头像回退为首字母）
- * 2. 下拉菜单：个人中心、返回后台、退出登录
+ * 2. 下拉菜单：修改密码（禁用占位）、返回后台（仅管理员）、退出登录
  * 3. 通过事件与父组件通信，路由跳转由 NoteView 统一处理
  */
 import { computed, h } from "vue";
@@ -26,34 +26,45 @@ const initial = computed(() => {
     return name.charAt(0).toUpperCase() || "U";
 });
 
+/** 判断当前用户是否为管理员 */
+const isAdmin = computed(() => userStore.userInfo.role === "admin");
+
 /** 下拉菜单配置 */
-const userMenuOptions = computed(() => [
-    {
-        label: t("note.user.back_dashboard"),
-        key: "dashboard",
-        icon: () => h(ZIcon, { name: "ri:dashboard-line", size: 16 }),
-    },
-    {
-        label: t("note.user.profile"),
-        key: "profile",
-        icon: () => h(ZIcon, { name: "ri:user-settings-line", size: 16 }),
-    },
-    { type: "divider", key: "d1" },
-    {
-        label: t("note.user.logout"),
-        key: "logout",
-        icon: () => h(ZIcon, { name: "ri:logout-box-line", size: 16 }),
-    },
-]);
+const userMenuOptions = computed(() => {
+    const options: Array<Record<string, unknown>> = [
+        {
+            label: t("note.user.change_password"),
+            key: "change_password",
+            icon: () => h(ZIcon, { name: "ri:lock-password-line", size: 16 }),
+            disabled: true,
+        },
+    ];
+
+    // 仅管理员显示"返回后台"
+    if (isAdmin.value) {
+        options.push({
+            label: t("note.user.back_dashboard"),
+            key: "dashboard",
+            icon: () => h(ZIcon, { name: "ri:dashboard-line", size: 16 }),
+        });
+    }
+
+    options.push(
+        { type: "divider", key: "d1" },
+        {
+            label: t("note.user.logout"),
+            key: "logout",
+            icon: () => h(ZIcon, { name: "ri:logout-box-line", size: 16 }),
+        }
+    );
+
+    return options;
+});
 
 /** 处理下拉菜单选择 */
 const handleMenuSelect = (key: string) => {
     if (key === "dashboard") {
         emit("navigate", "/dashboard/home");
-        return;
-    }
-    if (key === "profile") {
-        emit("navigate", "/dashboard/profile");
         return;
     }
     if (key === "logout") {

@@ -186,6 +186,7 @@ export default {
     "menu.notes": "我的笔记",
     "note.workspace.title": "笔记工作台",
     "note.user.profile": "个人中心",
+    "note.user.change_password": "修改密码",
     "note.user.back_dashboard": "返回后台",
     "note.user.logout": "退出登录",
     "note.notebook.switcher.label": "当前笔记本",
