@@ -11830,7 +11830,7 @@ app.route("/", publicRouter);
 app.route("/", userRouter);
 app.route("/", adminRouter);
 var backend_default = {
-  port: Number(Bun.env.ZNOTE_PORT || 3080),
+  port: Number(Bun.env.ZNOTE_PORT || 3888),
   fetch: app.fetch,
   idleTimeout: 120
 };
