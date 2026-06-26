@@ -63,7 +63,7 @@ const findNotePathForBreadcrumb = (nodes: DocNode[], noteId: number, path: DocNo
 <template>
   <nav
     v-if="activeNoteId !== null && items.length > 0"
-    class="flex items-center gap-1.5 pt-5 pb-4 text-xs sm:text-sm text-slate-500"
+    class="flex items-center gap-1.5 pb-4 text-xs sm:text-sm text-slate-500"
   >
     <!-- 文档首页链接 -->
     <a class="cursor-pointer transition hover:text-blue-600" @click="router.push(`/doc/${slug}`)">{{ t("doc.breadcrumb.home") }}</a>

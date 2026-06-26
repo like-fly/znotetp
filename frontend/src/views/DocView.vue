@@ -163,7 +163,7 @@ watch(() => route.fullPath, () => {
         class="flex-1 overflow-y-auto"
       >
         <!-- 面包屑 + 内容卡片统一居中 -->
-        <div class="mx-auto max-w-4xl px-4 sm:px-6">
+        <div class="mx-auto max-w-4xl px-4 sm:px-6 pt-5">
           <DocBreadcrumb />
           <div class="mb-4 rounded-2xl border border-slate-100 bg-white px-6 py-6 shadow-sm">
             <router-view />

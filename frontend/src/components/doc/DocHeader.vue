@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router";
-import { useI18n } from "vue-i18n";
 import { inject } from "vue";
 import ZIcon from "@/components/DynamicIcon.vue";
 
 const router = useRouter();
-const { t } = useI18n();
 
 defineProps<{
     /** 文档标题 */
@@ -17,11 +15,6 @@ const slug = inject<string>("slug", "");
 const emit = defineEmits<{
     (e: "toggle-sidebar"): void;
 }>();
-
-/** 返回应用首页 */
-const goHome = () => {
-    router.push("/");
-};
 </script>
 
 <template>
@@ -42,12 +35,5 @@ const goHome = () => {
         <span class="truncate text-base font-semibold text-slate-800">{{ title }}</span>
       </a>
     </div>
-    <button
-      class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-      @click="goHome"
-    >
-      <ZIcon name="ri:home-line" :size="14" />
-      {{ t("doc.header.home") }}
-    </button>
   </header>
 </template>

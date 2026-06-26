@@ -35,17 +35,17 @@ const countAllNotes = (node: any): number => {
     return count;
 };
 
-/** 递归平铺：按分类分组输出笔记列表 */
-const flattenTree = (nodes: any[]): { category: any; notes: any[] }[] => {
-    const result: { category: any; notes: any[] }[] = [];
+/** 递归平铺：按分类分组输出笔记列表，depth 记录层级深度用于缩进 */
+const flattenTree = (nodes: any[], depth = 0): { category: any; notes: any[]; depth: number }[] => {
+    const result: { category: any; notes: any[]; depth: number }[] = [];
     for (const node of nodes) {
         // 当前分类的笔记
         if (node.notes && node.notes.length > 0) {
-            result.push({ category: node, notes: node.notes });
+            result.push({ category: node, notes: node.notes, depth });
         }
-        // 递归子分类
+        // 递归子分类（深度 +1）
         if (node.children && node.children.length > 0) {
-            result.push(...flattenTree(node.children));
+            result.push(...flattenTree(node.children, depth + 1));
         }
     }
     return result;
@@ -75,6 +75,7 @@ const goToNote = (noteId: number) => {
       <div
         v-for="section in sections"
         :key="section.category.id"
+        :style="{ paddingLeft: section.depth * 20 + 'px' }"
         class="mb-6"
       >
         <!-- 分类标题行：名称 | 笔记数量 -->
