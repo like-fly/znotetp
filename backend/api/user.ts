@@ -6,7 +6,7 @@ import * as schema from "@/db/schema";
 import { getUserSettingValue } from "@/api/setting";
 import { checkSystemInitialized } from "@/api/system";
 import { vEmail, vPassword, vUsername } from "@/utils/check";
-import { enPassword, getBearerToken, getClientIp, randomString } from "@/utils/helper";
+import { enPassword, getAllowRegister, getBearerToken, getClientIp, randomString } from "@/utils/helper";
 
 const getRequestUserAgent = (c: Context) => {
     const userAgent = c.req.header("user-agent") || "unknown";
@@ -67,7 +67,7 @@ export const initUser = async (c: Context) => {
 };
 
 export const register = async (c: Context) => {
-    if ((Bun.env.ZEST_ALLOW_REGISTER || "true") === "false") {
+    if (!getAllowRegister()) {
         return c.json({ code: -1000, msg: "register.not.allowed", data: null });
     }
 

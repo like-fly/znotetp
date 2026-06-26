@@ -1,6 +1,7 @@
 import type { Config } from "drizzle-kit";
+import { DB_FILE } from "./backend/path";
 
-const dbPath = process.env.ZEST_DB_PATH || "./data/db/zest.db";
+const dbPath = DB_FILE;
 
 export default {
     schema: "./backend/db/schema.ts",

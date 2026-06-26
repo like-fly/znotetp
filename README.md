@@ -67,17 +67,16 @@ cp .env.example .env
 可用变量：
 
 ```env
-ZEST_APP_NAME=Zest
-ZEST_PORT=3080
-ZEST_DB_PATH=./data/db/zest.db
-ZEST_CORS_ORIGIN=*
-ZEST_ALLOW_REGISTER=true
+ZNOTE_APP_NAME=ZNote
+ZNOTE_PORT=3080
+ZNOTE_CORS_ORIGIN=*
+ZNOTE_ALLOW_REGISTER=true
 ```
 
 说明：
 
-- `ZEST_CORS_ORIGIN`：CORS 允许来源，支持 `*` 或逗号分隔的多个域名
-- `ZEST_ALLOW_REGISTER`：是否允许公开注册
+- `ZNOTE_CORS_ORIGIN`：CORS 允许来源，支持 `*` 或逗号分隔的多个域名
+- `ZNOTE_ALLOW_REGISTER`：是否允许公开注册
 
 ## 本地开发
 
@@ -195,7 +194,7 @@ docker compose -f compose.yaml down
 
 - 移除了原项目书签、导航、授权、更新、备份等业务代码
 - `logout` 改为只注销当前 session
-- CORS 改为由 `ZEST_CORS_ORIGIN` 控制
+- CORS 改为由 `ZNOTE_CORS_ORIGIN` 控制
 - 根目录脚本改为更通用的框架启动方式
 - 根 `package.json` 的依赖分类做了整理
 

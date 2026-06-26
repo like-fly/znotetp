@@ -47,7 +47,7 @@ export default {
     "register.email.placeholder": "Enter email",
     "register.password.placeholder": "Enter password",
     "register.submit": "Register & Enter Dashboard",
-    "register.disabled_notice": "Public registration is disabled. Please contact the administrator to create an account, or set `ZEST_ALLOW_REGISTER` to `true` in `.env`.",
+    "register.disabled_notice": "Public registration is disabled. Please contact the administrator to create an account, or set `ZNOTE_ALLOW_REGISTER` to `true` in `.env`.",
     "init.title": "Initialize Admin",
     "init.description": "Create the system administrator account on first startup.",
     "init.submit": "Initialize System",

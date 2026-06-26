@@ -4,7 +4,7 @@ import req from "@/utils/req";
 export const useSystemStore = defineStore("system", {
     state: () => ({
         status: {
-            app_name: "Zest",
+            app_name: "ZNote",
             initialized: false,
             allow_register: true,
         },

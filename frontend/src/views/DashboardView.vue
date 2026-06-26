@@ -31,7 +31,7 @@ const componentMap: Record<string, any> = {
     profile: ProfilePanel,
 };
 
-const appName = computed(() => siteStore.appInfo.app_name || "Zest");
+const appName = computed(() => siteStore.appInfo.app_name || "ZNote");
 
 const userMenuOptions = computed(() => [
     { label: t("dashboard.user_menu.home"), key: "home", icon: () => h(ZIcon, { name: "ri:home-line", size: 16 }) },

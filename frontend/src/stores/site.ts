@@ -4,7 +4,7 @@ import req from "@/utils/req";
 export const useSiteStore = defineStore("site", {
     state: () => ({
         appInfo: {
-            app_name: "Zest",
+            app_name: "ZNote",
             version: "0.1.0",
             date: "-",
             total_user_count: 0,

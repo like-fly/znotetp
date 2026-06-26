@@ -2,9 +2,10 @@ import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
 import { dirname } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
+import { DB_FILE } from "../path";
 import * as schema from "./schema";
 
-const dbFile = Bun.env.ZEST_DB_PATH || "./data/db/zest.db";
+const dbFile = DB_FILE;
 const dbDir = dirname(dbFile);
 
 if (!existsSync(dbDir)) {

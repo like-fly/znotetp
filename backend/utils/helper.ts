@@ -49,7 +49,11 @@ export const randomString = (length = 16): string => {
 };
 
 export const getAppName = (): string => {
-    return Bun.env.ZEST_APP_NAME?.trim() || "Zest";
+    return Bun.env.ZNOTE_APP_NAME?.trim() || "ZNote";
+};
+
+export const getAllowRegister = (): boolean => {
+    return Bun.env.ZNOTE_ALLOW_REGISTER === "true";
 };
 
 export const getBearerToken = (c: Context): string => {

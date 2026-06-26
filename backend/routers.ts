@@ -27,7 +27,7 @@ import { searchNotes } from "@/api/search";
 import { verifyApiToken } from "@/middleware/auth";
 import type { AppVariables } from "@/types";
 
-const allowedOrigin = Bun.env.ZEST_CORS_ORIGIN?.trim() || "*";
+const allowedOrigin = Bun.env.ZNOTE_CORS_ORIGIN?.trim() || "*";
 
 const corsOptions = {
     origin: allowedOrigin === "*"

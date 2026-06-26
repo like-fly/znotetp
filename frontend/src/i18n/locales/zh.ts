@@ -47,7 +47,7 @@ export default {
     "register.email.placeholder": "请输入邮箱",
     "register.password.placeholder": "请输入密码",
     "register.submit": "注册并进入后台",
-    "register.disabled_notice": "当前框架已关闭公开注册，请联系管理员创建账号，或在 `.env` 中将 `ZEST_ALLOW_REGISTER` 设为 `true`。",
+    "register.disabled_notice": "当前框架已关闭公开注册，请联系管理员创建账号，或在 `.env` 中将 `ZNOTE_ALLOW_REGISTER` 设为 `true`。",
     "init.title": "初始化管理员",
     "init.description": "首次启动时创建系统管理员账号。",
     "init.submit": "初始化系统",
