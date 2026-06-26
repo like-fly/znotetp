@@ -215,9 +215,9 @@ const titleInputRef = ref<HTMLInputElement | null>(null);
 // ==================== 侧边栏可调宽度 ====================
 
 /** 第一栏宽度（px），从 localStorage 恢复 */
-const col1Width = ref(240);
+const col1Width = ref(300);
 /** 第二栏宽度（px），从 localStorage 恢复 */
-const col2Width = ref(320);
+const col2Width = ref(380);
 
 /** 宽度约束（px） */
 const COL1_MIN = 200;
