@@ -31,7 +31,7 @@ const props = defineProps<{
 const activeNotebookId = inject<Ref<number | null>>("activeNotebookId", ref(null));
 
 /** 分类节点是否展开 */
-const expanded = ref(true);
+const expanded = ref(false);
 
 /** 当前分类是否处于激活状态（当前打开的分类页） */
 const isActive = computed(() => {
