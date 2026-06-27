@@ -11,6 +11,7 @@
 ```bash
 # 生产迁移脚本
 bunx drizzle-kit generate
+# 执行迁移（本地不执行）
 bunx drizzle-kit migrate
 # 本地开发使用
 bunx drizzle-kit push
