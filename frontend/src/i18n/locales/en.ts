@@ -65,6 +65,7 @@ export default {
     "home.hero.description": "A clean, self-hosted, native Markdown note app for your ideas.",
     "home.hero.init_system": "Initialize System",
     "home.hero.cta_secondary": "Learn More",
+    "home.hero.help_doc": "Help Docs",
     "home.features.title": "Why ZNote",
     "home.features.subtitle": "Built for people who love to write.",
     "home.features.pure.title": "Pure Note-Taking",

@@ -16,7 +16,7 @@ import { useUserStore } from "@/stores/user";
 import req from "@/utils/req";
 import ZIcon from "@/components/DynamicIcon.vue";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
 const systemStore = useSystemStore();
 const userStore = useUserStore();
@@ -191,6 +191,15 @@ onMounted(() => {
           <button class="btn-base btn-ghost btn-lg" @click="scrollToFeatures">
             {{ t("home.hero.cta_secondary") }}
           </button>
+          <a
+            v-if="locale === 'zh'"
+            href="https://znote.xphub.dev/doc/guide"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-base btn-ghost btn-lg"
+          >
+            {{ t("home.hero.help_doc") }}
+          </a>
         </div>
       </div>
     </section>

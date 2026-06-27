@@ -65,6 +65,7 @@ export default {
     "home.hero.description": "简洁、自托管、原生 Markdown 的笔记应用，让思考有处安放。",
     "home.hero.init_system": "初始化系统",
     "home.hero.cta_secondary": "了解更多",
+    "home.hero.help_doc": "帮助文档",
     "home.features.title": "为什么选择 ZNote",
     "home.features.subtitle": "为热爱记录的人而生",
     "home.features.pure.title": "纯笔记应用",

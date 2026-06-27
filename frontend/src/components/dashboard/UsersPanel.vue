@@ -41,7 +41,7 @@ const columns = [
         title: t("panel.users.col.actions"),
         key: "actions",
         width: 160,
-        fixed: "right",
+        fixed: "right" as const,
         render: (row: any) => row.role === "user"
             ? h(
                 NButton,

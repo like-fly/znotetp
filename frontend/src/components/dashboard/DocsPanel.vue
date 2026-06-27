@@ -106,7 +106,7 @@ const columns = [
         title: t("doc.panel.col.actions"),
         key: "actions",
         width: 80,
-        fixed: "right",
+        fixed: "right" as const,
         render: (row: any) =>
             h(
                 NButton,
