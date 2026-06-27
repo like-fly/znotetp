@@ -194,7 +194,11 @@ watch(activeNoteId, (newId) => {
   </div>
 
   <!-- 正常内容 -->
-  <div v-else class="flex h-screen flex-col bg-slate-50">
+  <div
+    v-else
+    class="flex h-screen flex-col bg-slate-50"
+    style="background-image: radial-gradient(ellipse at top, rgba(59,130,246,0.04), transparent 60%);"
+  >
     <!-- 顶栏 -->
     <DocHeader
       :title="displayTitle"
@@ -218,7 +222,7 @@ watch(activeNoteId, (newId) => {
           <div class="absolute inset-0 bg-black/30" @click="sidebarOpen = false" />
           <div class="relative z-40 flex h-full w-[300px] max-w-[85vw] flex-col bg-white shadow-xl">
             <!-- 抽屉头部：关闭按钮 + 文档标题 -->
-            <div class="flex h-12 flex-shrink-0 items-center justify-between border-b border-slate-200 px-4">
+            <div class="flex h-12 flex-shrink-0 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 backdrop-blur-sm">
               <button
                 class="-ml-1 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                 @click="sidebarOpen = false"
@@ -244,7 +248,7 @@ watch(activeNoteId, (newId) => {
         <!-- 面包屑 + 内容卡片统一居中 -->
         <div class="mx-auto max-w-4xl px-4 sm:px-6 pt-5">
           <DocBreadcrumb />
-          <div class="mb-4 rounded-2xl border border-slate-100 bg-white px-6 py-6 shadow-sm">
+          <div class="mb-4 rounded-2xl border border-slate-200/70 bg-white px-6 py-6 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)] transition-shadow duration-200 hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)]">
             <router-view />
           </div>
           <!-- 版权信息 -->

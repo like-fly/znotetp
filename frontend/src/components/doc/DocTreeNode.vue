@@ -68,7 +68,7 @@ const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     <!-- 分类标题行：点击名称跳转分类页，箭头折叠/展开 -->
     <div
       class="group flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm transition"
-      :class="isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'"
+      :class="isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100/80'"
       @click="goToNotebook(node.id)"
     >
       <!-- 折叠箭头（阻止事件冒泡，避免触发分类跳转） -->
@@ -92,7 +92,7 @@ const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         v-for="note in node.notes"
         :key="note.id"
         class="group flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-sm transition"
-        :class="activeNoteId === note.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-100'"
+        :class="activeNoteId === note.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-100/80'"
         @click="goToNote(note.id)"
       >
         <ZIcon name="ri:file-text-line" :size="14" class="flex-shrink-0 opacity-50" />

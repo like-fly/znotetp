@@ -53,7 +53,7 @@ const hasActiveNote = computed(() => activeNoteId.value !== null);
 <template>
   <aside class="flex h-full flex-col border-r border-slate-200 bg-white">
     <!-- 搜索框 -->
-    <div class="border-b border-slate-100 p-3">
+    <div class="sticky top-0 z-10 border-b border-slate-100 bg-white/80 p-3 backdrop-blur-sm">
       <div class="relative">
         <ZIcon name="ri:search-line" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
         <input

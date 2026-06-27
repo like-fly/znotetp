@@ -147,11 +147,16 @@ const handleContentClick = (e: MouseEvent) => {
 
     <!-- 笔记内容 -->
     <template v-else-if="note">
-      <!-- 笔记标题 -->
-      <h1 class="mb-2 text-2xl font-bold text-slate-900">{{ note.title }}</h1>
-      <!-- 元信息 -->
-      <div class="mb-8 text-xs text-slate-400">
-        <span v-if="note.updated_at">{{ t("doc.note.updated_at") }}: {{ formatDate(note.updated_at) }}</span>
+      <!-- 笔记标题 + 元信息：底部细线分隔 -->
+      <div class="mb-6 border-b border-slate-100 pb-4">
+        <h1 class="mb-1.5 text-2xl font-bold tracking-tight text-slate-900">{{ note.title }}</h1>
+        <!-- 元信息 -->
+        <div class="flex items-center gap-3 text-xs text-slate-400">
+          <span v-if="note.updated_at" class="inline-flex items-center gap-1">
+            <ZIcon name="ri:time-line" :size="12" class="opacity-70" />
+            {{ t("doc.note.updated_at") }}: {{ formatDate(note.updated_at) }}
+          </span>
+        </div>
       </div>
 
       <!-- Markdown 内容渲染 -->

@@ -18,7 +18,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <header class="flex h-12 items-center justify-between border-b border-slate-200 bg-white px-4">
+  <header
+    class="sticky top-0 z-40 flex h-12 items-center justify-between border-b border-slate-200/60 bg-white/70 px-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur-md supports-[backdrop-filter]:bg-white/60"
+  >
     <div class="flex items-center gap-3">
       <!-- 移动端汉堡按钮 -->
       <button

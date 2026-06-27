@@ -98,7 +98,7 @@ onUnmounted(() => {
     v-if="!floating && hasHeadings"
     class="hidden h-full flex-col border-l border-slate-200 bg-white xl:flex"
   >
-    <div class="border-b border-slate-100 px-4 py-3">
+    <div class="sticky top-0 border-b border-slate-100 bg-white/80 px-4 py-3 backdrop-blur-sm">
       <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">{{ t("doc.toc.title") }}</span>
     </div>
     <nav class="flex-1 overflow-y-auto px-3 py-2">
@@ -120,7 +120,7 @@ onUnmounted(() => {
   <template v-if="floating && hasHeadings">
     <!-- 浮动按钮 -->
     <button
-      class="fixed bottom-6 right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 transition hover:bg-slate-50"
+      class="fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 shadow-lg ring-1 ring-slate-200/60 backdrop-blur-md transition hover:scale-105 hover:bg-white active:scale-95"
       @click="showMobileToc = !showMobileToc"
     >
       <ZIcon name="ri:list-unordered" :size="18" class="text-slate-600" />
