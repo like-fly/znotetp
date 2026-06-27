@@ -97,9 +97,3 @@
     padding-bottom: 12px !important;
 }
 
-/* 手机上的样式 */
-@media (max-width: 768px) {
-    .vditor-toolbar{
-        display: none !important;
-    }
-}
