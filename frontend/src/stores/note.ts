@@ -47,6 +47,23 @@ const writeSessionId = (key: string, val: number | null): void => {
     }
 };
 
+/** 从 localStorage 读取 ID，无值时返回 null */
+const readLocalId = (key: string): number | null => {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const num = Number(raw);
+    return Number.isFinite(num) ? num : null;
+};
+
+/** 写入 localStorage（null 时清除） */
+const writeLocalId = (key: string, val: number | null): void => {
+    if (val === null) {
+        localStorage.removeItem(key);
+    } else {
+        localStorage.setItem(key, String(val));
+    }
+};
+
 // ==================== 树操作工具函数（纯函数，不可变更新） ====================
 
 /**
@@ -205,7 +222,7 @@ export const useNoteStore = defineStore("note", {
         /** 分类 id → 该分类下的笔记列表 */
         notesByCategory: {} as Record<number, Note[]>,
         /** 当前选中的笔记本（顶层）id（优先从 sessionStorage 恢复） */
-        activeNotebookId: readSessionId(SESSION_KEYS.notebook),
+        activeNotebookId: readLocalId(SESSION_KEYS.notebook),
         /** 当前选中的分类 id（null 表示未选中）（优先从 sessionStorage 恢复） */
         activeCategoryId: readSessionId(SESSION_KEYS.category),
         /** 当前选中的笔记 id（优先从 sessionStorage 恢复） */
@@ -329,7 +346,7 @@ export const useNoteStore = defineStore("note", {
                 // 默认选中第一个顶层笔记本（仅在 sessionStorage 无缓存时）
                 if (this.activeNotebookId === null && tree.length > 0) {
                     this.activeNotebookId = tree[0].id;
-                    writeSessionId(SESSION_KEYS.notebook, this.activeNotebookId);
+                    writeLocalId(SESSION_KEYS.notebook, this.activeNotebookId);
                 } else if (this.activeNotebookId !== null) {
                     // 校验恢复的 notebookId 是否有效，无效则清除
                     const valid = !!findNodeById(tree, this.activeNotebookId);
@@ -337,7 +354,7 @@ export const useNoteStore = defineStore("note", {
                         this.activeNotebookId = null;
                         this.activeCategoryId = null;
                         this.activeNoteId = null;
-                        writeSessionId(SESSION_KEYS.notebook, null);
+                        writeLocalId(SESSION_KEYS.notebook, null);
                         writeSessionId(SESSION_KEYS.category, null);
                         writeSessionId(SESSION_KEYS.note, null);
                     }
@@ -382,7 +399,7 @@ export const useNoteStore = defineStore("note", {
             this.searchKeyword = "";
             this.searchResults = [];
             if (this.trashMode) this.exitTrashMode();
-            writeSessionId(SESSION_KEYS.notebook, id);
+            writeLocalId(SESSION_KEYS.notebook, id);
             writeSessionId(SESSION_KEYS.category, null);
             writeSessionId(SESSION_KEYS.note, null);
         },
@@ -470,7 +487,7 @@ export const useNoteStore = defineStore("note", {
 
             // 3. 切换到顶层笔记本（会重置 activeCategoryId / activeNoteId）
             this.activeNotebookId = topLevelId;
-            writeSessionId(SESSION_KEYS.notebook, topLevelId);
+            writeLocalId(SESSION_KEYS.notebook, topLevelId);
 
             // 4. 选中笔记所属分类（按需加载该分类的笔记列表）
             this.activeCategoryId = note.notebook_id;
@@ -651,7 +668,7 @@ export const useNoteStore = defineStore("note", {
                             this.searchKeyword = "";
                             this.searchResults = [];
                             if (this.trashMode) this.exitTrashMode();
-                            writeSessionId(SESSION_KEYS.notebook, null);
+                            writeLocalId(SESSION_KEYS.notebook, null);
                             writeSessionId(SESSION_KEYS.category, null);
                             writeSessionId(SESSION_KEYS.note, null);
                         }
