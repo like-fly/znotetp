@@ -22,6 +22,7 @@ import { listNotebooks, getTopLevelNotebooks, createNotebook, updateNotebook, so
 import { listNotes, createNote, updateNote, deleteNote, sortNotes, getNoteById, listTrashNotes, permanentDeleteNote, emptyTrash } from "@/api/note";
 import { listNoteVersions, getNoteVersion } from "@/api/note_version";
 import { importZip } from "@/api/import";
+import { exportZip } from "@/api/export";
 import { uploadFiles } from "@/api/file";
 import { searchNotes } from "@/api/search";
 import { listDocs, createDoc, updateDoc, deleteDoc, getAllTopLevelNotebooks, getPublicDoc, getPublicNote } from "@/api/doc";
@@ -114,6 +115,7 @@ userRouter.post("/note/trash/empty", emptyTrash);
 userRouter.post("/note/permanent_delete", permanentDeleteNote);
 
 userRouter.post("/import", importZip);
+userRouter.get("/export", exportZip);
 userRouter.post("/file/upload", uploadFiles);
 
 adminRouter.get("/app_info", getAppInfo);

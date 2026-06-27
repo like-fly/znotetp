@@ -22,6 +22,7 @@ import NoteEditor from "@/components/note/NoteEditor.vue";
 import NoteMetaBar from "@/components/note/NoteMetaBar.vue";
 import CreateNotebookDialog from "@/components/note/dialogs/CreateNotebookDialog.vue";
 import ImportDialog from "@/components/note/dialogs/ImportDialog.vue";
+import ExportDialog from "@/components/note/dialogs/ExportDialog.vue";
 import MoveDialog from "@/components/note/dialogs/MoveDialog.vue";
 import DeleteNotebookDialog from "@/components/note/dialogs/DeleteNotebookDialog.vue";
 import VersionHistoryDialog from "@/components/note/dialogs/VersionHistoryDialog.vue";
@@ -84,6 +85,10 @@ const showCreateNotebook = ref(false);
 const showCreateCategory = ref(false);
 /** 导入 Dialog 显隐 */
 const showImportDialog = ref(false);
+/** 导出 Dialog 显隐 */
+const showExportDialog = ref(false);
+/** 导出目标信息 */
+const exportTarget = ref<{ id: number; name: string } | null>(null);
 /** 新建子分类时，传入的父分类信息 */
 const newCategoryParent = ref<{ id: number; name: string } | null>(null);
 
@@ -448,7 +453,21 @@ const handleCategoryMenuSelect = (action: CategoryContextAction, node: NotebookN
     } else if (action === "delete") {
         deleteTarget.value = node;
         showDeleteDialog.value = true;
+    } else if (action === "export") {
+        exportTarget.value = { id: node.id, name: node.title };
+        showExportDialog.value = true;
     }
+};
+
+/** 点击顶部导出按钮 */
+const handleExportClick = () => {
+    if (noteStore.activeNotebookId === null) return;
+    const notebook = noteStore.notebookTree.find((nb) => nb.id === noteStore.activeNotebookId);
+    exportTarget.value = {
+        id: noteStore.activeNotebookId,
+        name: notebook?.title ?? "",
+    };
+    showExportDialog.value = true;
 };
 
 /** 确认重命名 */
@@ -659,6 +678,14 @@ const handleSaveTitle = async () => {
             @click="showImportDialog = true"
           >
             <ZIcon name="ri:upload-line" :size="14" color="currentColor" />
+          </button>
+          <button
+            class="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition hover:bg-slate-700/60 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="noteStore.activeNotebookId === null"
+            :title="t('export.title')"
+            @click="handleExportClick"
+          >
+            <ZIcon name="ri:download-line" :size="14" color="currentColor" />
           </button>
           <button
             class="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition hover:bg-slate-700/60 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40"
@@ -876,6 +903,13 @@ const handleSaveTitle = async () => {
     <ImportDialog
       v-model:show="showImportDialog"
       :notebook-id="noteStore.activeNotebookId"
+    />
+
+    <!-- 导出 ZIP -->
+    <ExportDialog
+      v-model:show="showExportDialog"
+      :notebook-id="exportTarget?.id ?? null"
+      :notebook-name="exportTarget?.name ?? ''"
     />
 
     <!-- 历史版本抽屉 -->

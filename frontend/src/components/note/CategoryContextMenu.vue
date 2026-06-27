@@ -17,7 +17,7 @@ import ZIcon from "@/components/DynamicIcon.vue";
 import type { NotebookNode } from "@/types/note";
 
 /** 右键菜单可触发的操作 */
-export type CategoryContextAction = "rename" | "delete" | "move";
+export type CategoryContextAction = "rename" | "delete" | "move" | "export";
 
 const props = defineProps<{
     show: boolean;
@@ -50,6 +50,11 @@ const menuOptions = [
         icon: () => h(ZIcon, { name: "ri:arrow-right-circle-line", size: 16 }),
     },
     {
+        label: t("note.category.context.export"),
+        key: "export",
+        icon: () => h(ZIcon, { name: "ri:download-line", size: 16 }),
+    },
+    {
         label: t("note.category.context.delete"),
         key: "delete",
         icon: () => h(ZIcon, { name: "ri:delete-bin-line", size: 16 }),
@@ -57,7 +62,7 @@ const menuOptions = [
 ];
 
 const handleSelect = (key: string) => {
-    if (props.node && (key === "rename" || key === "delete" || key === "move")) {
+    if (props.node && (key === "rename" || key === "delete" || key === "move" || key === "export")) {
         emit("select", key as CategoryContextAction, props.node);
     }
     emit("update:show", false);
