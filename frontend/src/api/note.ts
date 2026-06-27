@@ -162,3 +162,15 @@ export const permanentDeleteNote = async (id: number): Promise<boolean> => {
     const res = await req.post<ApiResult<null>>("/api/user/note/permanent_delete", { id });
     return res.data?.code === 200;
 };
+
+/**
+ * 清空回收站（批量硬删除）
+ * @returns 成功删除的笔记数量，失败返回 -1
+ */
+export const emptyTrash = async (): Promise<number> => {
+    const res = await req.post<ApiResult<{ deleted: number }>>("/api/user/note/trash/empty");
+    if (res.data?.code === 200) {
+        return res.data.data?.deleted ?? 0;
+    }
+    return -1;
+};

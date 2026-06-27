@@ -11,7 +11,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NSpin, useMessage } from "naive-ui";
+import { NButton, NPopconfirm, NSpin, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import ZIcon from "@/components/DynamicIcon.vue";
 import UserHeader from "@/components/note/UserHeader.vue";
@@ -176,6 +176,27 @@ const handleBackToCurrent = () => {
     versionBackup.value = null;
     viewingVersion.value = false;
     viewingVersionNo.value = null;
+};
+
+// ==================== 清空回收站 ====================
+
+/** 清空回收站加载状态 */
+const emptyTrashLoading = ref(false);
+
+/**
+ * 清空回收站
+ * 调用 store action 批量删除回收站中的所有笔记
+ */
+const handleEmptyTrash = async () => {
+    emptyTrashLoading.value = true;
+    try {
+        const deleted = await noteStore.emptyTrash();
+        if (deleted >= 0) {
+            message.success(t("note.trash.empty.success"));
+        }
+    } finally {
+        emptyTrashLoading.value = false;
+    }
 };
 
 /**
@@ -664,13 +685,32 @@ const handleSaveTitle = async () => {
           />
           <!-- 回收站入口 -->
           <div class="mt-2 border-t border-slate-700/60 pt-2">
-            <div
-              class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition"
-              :class="noteStore.trashMode ? 'bg-blue-500/15 text-blue-300' : 'text-slate-400 hover:bg-slate-700/60 hover:text-slate-200'"
-              @click="handleEnterTrash"
-            >
-              <ZIcon name="ri:delete-bin-line" :size="16" color="currentColor" />
-              <span>{{ t('note.trash.title') }}</span>
+            <div class="flex items-center justify-between rounded px-2 py-1.5">
+              <div
+                class="flex cursor-pointer items-center gap-2 text-sm transition"
+                :class="noteStore.trashMode ? 'text-blue-300' : 'text-slate-400 hover:text-slate-200'"
+                @click="handleEnterTrash"
+              >
+                <ZIcon name="ri:delete-bin-line" :size="16" color="currentColor" />
+                <span>{{ t('note.trash.title') }}</span>
+              </div>
+              <NPopconfirm
+                v-show="noteStore.trashMode"
+                :disabled="noteStore.trashNotes.length === 0 || emptyTrashLoading"
+                @positive-click="handleEmptyTrash"
+              >
+                <template #trigger>
+                  <NButton
+                    type="error"
+                    size="tiny"
+                    :loading="emptyTrashLoading"
+                    :disabled="noteStore.trashNotes.length === 0"
+                  >
+                    {{ t("note.trash.empty.button") }}
+                  </NButton>
+                </template>
+                {{ t("note.trash.empty.confirm") }}
+              </NPopconfirm>
             </div>
           </div>
         </template>
@@ -943,13 +983,32 @@ const handleSaveTitle = async () => {
               />
               <!-- 回收站入口 -->
               <div class="mt-2 border-t border-slate-700/60 pt-2">
-                <div
-                  class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition"
-                  :class="noteStore.trashMode ? 'bg-blue-500/15 text-blue-300' : 'text-slate-400 hover:bg-slate-700/60 hover:text-slate-200'"
-                  @click="handleEnterTrash"
-                >
-                  <ZIcon name="ri:delete-bin-line" :size="16" color="currentColor" />
-                  <span>{{ t('note.trash.title') }}</span>
+                <div class="flex items-center justify-between rounded px-2 py-1.5">
+                  <div
+                    class="flex cursor-pointer items-center gap-2 text-sm transition"
+                    :class="noteStore.trashMode ? 'text-blue-300' : 'text-slate-400 hover:text-slate-200'"
+                    @click="handleEnterTrash"
+                  >
+                    <ZIcon name="ri:delete-bin-line" :size="16" color="currentColor" />
+                    <span>{{ t('note.trash.title') }}</span>
+                  </div>
+                  <NPopconfirm
+                    v-show="noteStore.trashMode"
+                    :disabled="noteStore.trashNotes.length === 0 || emptyTrashLoading"
+                    @positive-click="handleEmptyTrash"
+                  >
+                    <template #trigger>
+                      <NButton
+                        type="error"
+                        size="tiny"
+                        :loading="emptyTrashLoading"
+                        :disabled="noteStore.trashNotes.length === 0"
+                      >
+                        {{ t("note.trash.empty.button") }}
+                      </NButton>
+                    </template>
+                    {{ t("note.trash.empty.confirm") }}
+                  </NPopconfirm>
                 </div>
               </div>
             </template>

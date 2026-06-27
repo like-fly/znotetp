@@ -403,6 +403,143 @@ export const sortNotes = async (c: Context) => {
 };
 
 /**
+ * 清空回收站（批量硬删除）
+ * 将当前用户所有已软删除的笔记彻底删除，包括历史版本和关联文件
+ * 分批处理，每批 30 条笔记，每批一个事务，避免长时间持锁
+ * 失败的批次跳过继续处理，返回成功删除的总数
+ */
+export const emptyTrash = async (c: Context) => {
+    const uid = Number(c.get("uid"));
+    const BATCH_SIZE = 30;
+
+    // 查询回收站所有笔记 ID（仅查 ID，轻量）
+    const trashedNotes = await db
+        .select({ id: schema.notes.id })
+        .from(schema.notes)
+        .where(and(
+            eq(schema.notes.user_id, uid),
+            eq(schema.notes.is_deleted, 1),
+        ))
+        .all();
+
+    // 回收站为空，直接返回
+    if (trashedNotes.length === 0) {
+        return c.json({
+            code: 200,
+            msg: "note.trash.empty.success",
+            data: { deleted: 0 },
+        });
+    }
+
+    const noteIds = trashedNotes.map((n) => n.id);
+    let totalDeleted = 0;
+
+    // 分批处理
+    for (let i = 0; i < noteIds.length; i += BATCH_SIZE) {
+        const batchIds = noteIds.slice(i, i + BATCH_SIZE);
+
+        try {
+            // 查询这批笔记的内容
+            const notes = await db
+                .select({ id: schema.notes.id, content: schema.notes.content })
+                .from(schema.notes)
+                .where(and(
+                    inArray(schema.notes.id, batchIds),
+                    eq(schema.notes.user_id, uid),
+                ))
+                .all();
+
+            // 查询这批笔记的所有历史版本
+            const versions = await db
+                .select({ note_id: schema.noteVersions.note_id, content: schema.noteVersions.content })
+                .from(schema.noteVersions)
+                .where(and(
+                    inArray(schema.noteVersions.note_id, batchIds),
+                    eq(schema.noteVersions.user_id, uid),
+                ))
+                .all();
+
+            // 合并所有内容，正则提取图片 ID
+            const allContents = [
+                ...notes.map((n) => n.content),
+                ...versions.map((v) => v.content),
+            ].filter(Boolean);
+
+            const fileIdSet = new Set<string>();
+            const reg = /zn-[A-Za-z0-9]{8}/g;
+            for (const text of allContents) {
+                const matches = text.matchAll(reg);
+                for (const m of matches) {
+                    fileIdSet.add(m[0]);
+                }
+            }
+
+            // 查询关联文件记录
+            const filePaths: string[] = [];
+            if (fileIdSet.size > 0) {
+                const fileRecords = await db
+                    .select({ file_path: schema.files.file_path })
+                    .from(schema.files)
+                    .where(and(
+                        inArray(schema.files.file_id, [...fileIdSet]),
+                        eq(schema.files.user_id, uid),
+                    ))
+                    .all();
+                filePaths.push(...fileRecords.map((f) => f.file_path));
+            }
+
+            // 事务内批量删除：历史版本 → 文件记录 → 笔记
+            await db.transaction(async (tx) => {
+                await tx
+                    .delete(schema.noteVersions)
+                    .where(and(
+                        inArray(schema.noteVersions.note_id, batchIds),
+                        eq(schema.noteVersions.user_id, uid),
+                    ));
+
+                if (fileIdSet.size > 0) {
+                    await tx
+                        .delete(schema.files)
+                        .where(and(
+                            inArray(schema.files.file_id, [...fileIdSet]),
+                            eq(schema.files.user_id, uid),
+                        ));
+                }
+
+                await tx
+                    .delete(schema.notes)
+                    .where(and(
+                        inArray(schema.notes.id, batchIds),
+                        eq(schema.notes.user_id, uid),
+                    ));
+            });
+
+            // 事务成功后，清理磁盘文件（失败不阻塞，静默跳过）
+            for (const relativePath of filePaths) {
+                try {
+                    const fullPath = join(FILES_BASE_PATH, relativePath);
+                    if (existsSync(fullPath)) {
+                        unlinkSync(fullPath);
+                    }
+                } catch {
+                    // 磁盘文件删除失败不影响结果
+                }
+            }
+
+            totalDeleted += notes.length;
+        } catch {
+            // 该批次处理失败，跳过继续处理下一批
+        }
+    }
+
+    return c.json({
+        code: 200,
+        msg: "note.trash.empty.success",
+        data: { deleted: totalDeleted },
+    });
+};
+
+/**
  * 获取回收站笔记列表
  * 查询当前用户已软删除的笔记，按删除时间倒序，最多 200 条
  */

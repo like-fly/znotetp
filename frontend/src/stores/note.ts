@@ -11,7 +11,7 @@
 import { defineStore } from "pinia";
 import * as notebookApi from "@/api/notebook";
 import * as noteApi from "@/api/note";
-import { fetchNoteById, fetchTrashNotes, permanentDeleteNote } from "@/api/note";
+import { fetchNoteById, fetchTrashNotes, permanentDeleteNote, emptyTrash as apiEmptyTrash } from "@/api/note";
 import type { CreateNotebookPayload, CreateNotePayload, Note, Notebook, NotebookNode, SortNoteItem, SortNotebookItem } from "@/types/note";
 
 interface LoadingState {
@@ -806,6 +806,31 @@ export const useNoteStore = defineStore("note", {
                 return ok;
             } finally {
                 this.loading.save = false;
+            }
+        },
+
+        /**
+         * 清空回收站（批量硬删除）
+         * 调用后端接口删除回收站中所有笔记，成功后清空本地回收站列表
+         * @returns 成功删除的笔记数量，失败返回 -1
+         */
+        async emptyTrash() {
+            this.loading.trash = true;
+            try {
+                const deleted = await apiEmptyTrash();
+                if (deleted >= 0) {
+                    // 清空回收站列表
+                    this.trashNotes = [];
+                    // 清空当前选中的笔记（如果有的话）
+                    if (this.activeNoteId !== null) {
+                        this.activeNoteId = null;
+                        this.activeNoteData = null;
+                        writeSessionId(SESSION_KEYS.note, null);
+                    }
+                }
+                return deleted;
+            } finally {
+                this.loading.trash = false;
             }
         },
 
