@@ -366,6 +366,7 @@ export default {
     "notfound.back_home": "返回首页",
     "share.create.note_id_required": "缺少笔记 ID",
     "share.create.not_found": "笔记不存在或已被删除",
+    "share.create.limit_reached": "分享数量已达上限",
     "share.create.success": "创建分享成功",
     "share.list.success": "获取分享列表成功",
     "share.get.not_found": "分享不存在或已失效",

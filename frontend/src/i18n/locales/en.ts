@@ -366,6 +366,7 @@ export default {
     "notfound.back_home": "Back to Home",
     "share.create.note_id_required": "Note ID is required",
     "share.create.not_found": "Note not found or has been deleted",
+    "share.create.limit_reached": "Share limit reached",
     "share.create.success": "Share created successfully",
     "share.list.success": "Share list retrieved successfully",
     "share.get.not_found": "Share not found or has expired",

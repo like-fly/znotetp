@@ -37,6 +37,17 @@ export const createShare = async (c: Context) => {
         return c.json({ code: -1000, msg: "share.create.not_found", data: null });
     }
 
+    // 检查用户分享数量是否达到上限（100个）
+    const shareCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(noteShares)
+        .where(eq(noteShares.user_id, uid))
+        .get();
+
+    if (shareCount && shareCount.count >= 100) {
+        return c.json({ code: -1000, msg: "share.create.limit_reached", data: null });
+    }
+
     // 生成分享唯一标识
     const shareId = randomString(8);
 
