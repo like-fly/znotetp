@@ -116,6 +116,20 @@ const showDeleteDialog = ref(false);
 /** 删除目标节点 */
 const deleteTarget = ref<NotebookNode | null>(null);
 
+/** 重命名弹窗标题：笔记本用 notebook 标题，分类用 category 标题 */
+const renameDialogTitle = computed(() =>
+    renameTarget.value?.parent_id === null
+        ? t("note.notebook.rename.title")
+        : t("note.category.rename.title"),
+);
+
+/** 重命名弹窗占位符 */
+const renameDialogPlaceholder = computed(() =>
+    renameTarget.value?.parent_id === null
+        ? t("note.notebook.rename.placeholder")
+        : t("note.category.rename.placeholder"),
+);
+
 // ==================== 移动弹窗 ====================
 
 /** 移动弹窗显隐 */
@@ -403,6 +417,18 @@ const handleDeleteNotebook = () => {
     showDeleteDialog.value = true;
 };
 
+/**
+ * 请求重命名当前笔记本（由 NotebookSwitcher 更多菜单触发）
+ * 复用 Rename NModal + handleConfirmRename，与右键重命名分类走同一套流程
+ */
+const handleRenameNotebook = () => {
+    const nb = noteStore.activeNotebook;
+    if (!nb) return;
+    renameTarget.value = nb;
+    renameValue.value = nb.title ?? "";
+    showRenameDialog.value = true;
+};
+
 /** 提交"新建笔记本" */
 const handleConfirmCreateNotebook = async (title: string) => {
     const result = await noteStore.createNotebook({ title, parent_id: null });
@@ -677,6 +703,7 @@ const handleSaveTitle = async () => {
           :model-value="noteStore.activeNotebookId"
           @update:model-value="handleSwitchNotebook"
           @create="handleOpenCreateNotebook"
+          @rename="handleRenameNotebook"
           @delete="handleDeleteNotebook"
         />
       </div>
@@ -899,11 +926,11 @@ const handleSaveTitle = async () => {
       @select="handleCategoryMenuSelect"
     />
 
-    <!-- ==================== 重命名分类 Dialog ==================== -->
+    <!-- ==================== 重命名 Dialog ==================== -->
     <NModal
       v-model:show="showRenameDialog"
       preset="dialog"
-      :title="t('note.category.rename.title')"
+      :title="renameDialogTitle"
       :positive-text="t('note.dialog.confirm')"
       :negative-text="t('note.dialog.cancel')"
       :mask-closable="false"
@@ -912,7 +939,7 @@ const handleSaveTitle = async () => {
     >
       <NInput
         v-model:value="renameValue"
-        :placeholder="t('note.category.rename.placeholder')"
+        :placeholder="renameDialogPlaceholder"
         autofocus
         @keydown.enter="handleConfirmRename"
       />
@@ -1034,6 +1061,7 @@ const handleSaveTitle = async () => {
               :model-value="noteStore.activeNotebookId"
               @update:model-value="handleSwitchNotebook"
               @create="handleOpenCreateNotebook"
+              @rename="handleRenameNotebook"
               @delete="handleDeleteNotebook"
             />
           </div>
@@ -1217,7 +1245,7 @@ const handleSaveTitle = async () => {
     <NModal
       v-model:show="showRenameDialog"
       preset="dialog"
-      :title="t('note.category.rename.title')"
+      :title="renameDialogTitle"
       :positive-text="t('note.dialog.confirm')"
       :negative-text="t('note.dialog.cancel')"
       :mask-closable="false"
@@ -1226,7 +1254,7 @@ const handleSaveTitle = async () => {
     >
       <NInput
         v-model:value="renameValue"
-        :placeholder="t('note.category.rename.placeholder')"
+        :placeholder="renameDialogPlaceholder"
         autofocus
         @keydown.enter="handleConfirmRename"
       />
