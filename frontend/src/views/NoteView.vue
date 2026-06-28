@@ -662,7 +662,7 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
     void handleSaveNote();
 };
 
-/** 标题失焦时自动保存标题 */
+/** 标题失焦时自动保存标题（同时保存当前编辑中的内容，防止内容丢失） */
 const handleSaveTitle = async () => {
     if (noteStore.activeNoteId === null) return;
     const trimmed = draftTitle.value.trim();
@@ -671,11 +671,14 @@ const handleSaveTitle = async () => {
         draftTitle.value = noteStore.activeNote?.title ?? t("note.note.untitled");
         return;
     }
-    // 仅标题有变化时才保存
-    if (trimmed !== noteStore.activeNote?.title) {
+    // 标题或内容有变化时才保存
+    if (trimmed !== noteStore.activeNote?.title || draftContent.value !== noteStore.activeNote?.content) {
         isSaving.value = true;
         try {
-            await noteStore.updateNote(noteStore.activeNoteId, { title: trimmed });
+            await noteStore.updateNote(noteStore.activeNoteId, {
+                title: trimmed,
+                content: draftContent.value,
+            });
         } finally {
             isSaving.value = false;
         }
