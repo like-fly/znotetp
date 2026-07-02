@@ -94,6 +94,8 @@ onMounted(() => {
         req.get("/api/user/check_login").then((res) => {
             if (res.data?.code === 200) {
                 userStore.getUserInfo();
+                // 已登录用户访问首页时自动跳转到应用
+                router.replace("/app");
             }
         });
     }
