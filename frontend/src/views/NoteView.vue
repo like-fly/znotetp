@@ -258,6 +258,8 @@ const titleInputRef = ref<HTMLInputElement | null>(null);
 
 /** 自动保存状态：saved 已保存 / saving 保存中 / unsaved 有未保存更改 */
 const autoSaveStatus = ref<"saved" | "saving" | "unsaved">("saved");
+/** 编辑器是否被用户激活过（点击/编辑），用于控制自动保存状态指示器的显隐 */
+const editorTouched = ref(false);
 /** 自动保存防抖定时器 */
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 /** 标记是否正在执行自动保存（防止并发） */
@@ -290,9 +292,20 @@ const performAutoSave = async () => {
     }
 };
 
-/** 5 秒防抖触发自动保存 */
+/** 5 秒防抖触发自动保存（仅编辑器被激活后生效） */
 const scheduleAutoSave = () => {
+    // 编辑器未被用户激活，不触发自动保存（避免切换笔记时误标"未保存"）
+    if (!editorTouched.value) return;
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
+
+    // 内容无变化则不标"未保存"，直接归 saved
+    const latestContent = getLatestContent();
+    const saved = noteStore.activeNote;
+    if (saved && draftTitle.value === saved.title && latestContent === saved.content) {
+        autoSaveStatus.value = "saved";
+        return;
+    }
+
     autoSaveStatus.value = "unsaved";
     autoSaveTimer = setTimeout(() => {
         void performAutoSave();
@@ -660,6 +673,8 @@ const handleSelectNote = async (id: number) => {
     if (hasUnsavedChanges.value && noteStore.activeNoteId !== null) {
         await handleSaveNote();
     }
+    // 切换笔记后重置触摸标记，新笔记默认不显示自动保存状态
+    editorTouched.value = false;
     await noteStore.selectNote(id);
     router.push(`/app/note/${id}`);
 };
@@ -706,8 +721,9 @@ watch(
 /** NoteEditor 组件引用（用于获取最新编辑器内容） */
 const editorRef = ref<InstanceType<typeof NoteEditor> | null>(null);
 
-/** 编辑器内容变更 → 暂存到草稿 */
+/** 编辑器内容变更 → 暂存到草稿，标记编辑器已激活 */
 const handleEditorChange = (value: string) => {
+    editorTouched.value = true;
     draftContent.value = value;
 };
 
@@ -971,6 +987,7 @@ const handleSaveTitle = async () => {
             :placeholder="t('note.editor.placeholder')"
             type="text"
             class="note-title-input"
+            @focus="editorTouched = true"
             @blur="handleSaveTitle"
             @keydown.enter="($event.target as HTMLElement).blur()"
           />
@@ -980,7 +997,7 @@ const handleSaveTitle = async () => {
               :category-name="activeCategoryName"
               :saving="isSaving"
               :viewing-version="viewingVersion"
-              :auto-save-status="autoSaveStatus"
+              :auto-save-status="editorTouched ? autoSaveStatus : undefined"
               @save="handleSaveNote"
               @history="showVersionHistory = true"
               @back-to-current="handleBackToCurrent"
@@ -1296,6 +1313,7 @@ const handleSaveTitle = async () => {
             :placeholder="t('note.editor.placeholder')"
             type="text"
             class="note-title-input"
+            @focus="editorTouched = true"
             @blur="handleSaveTitle"
             @keydown.enter="($event.target as HTMLElement).blur()"
           />
@@ -1305,7 +1323,7 @@ const handleSaveTitle = async () => {
               :category-name="activeCategoryName"
               :saving="isSaving"
               :viewing-version="viewingVersion"
-              :auto-save-status="autoSaveStatus"
+              :auto-save-status="editorTouched ? autoSaveStatus : undefined"
               :mobile="true"
               @save="handleSaveNote"
               @history="showVersionHistory = true"

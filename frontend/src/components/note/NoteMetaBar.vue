@@ -23,7 +23,7 @@ const props = defineProps<{
     viewingVersion?: boolean;
     /** 移动端精简模式（隐藏时间和历史按钮，保存按钮改为纯图标） */
     mobile?: boolean;
-    /** 自动保存状态：saved 已保存 / saving 保存中 / unsaved 未保存 */
+    /** 自动保存状态：saved 已保存 / saving 保存中 / unsaved 未保存 / undefined 不显示任何指示器 */
     autoSaveStatus?: "saved" | "saving" | "unsaved";
 }>();
 
