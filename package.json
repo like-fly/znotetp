@@ -13,7 +13,9 @@
   "dependencies": {
     "@ai-sdk/openai": "^4.0.7",
     "@libsql/client": "^0.17.4",
+    "@mastra/core": "^1.49.0",
     "@mastra/libsql": "^1.15.0",
+    "@mastra/memory": "^1.22.1",
     "adm-zip": "^0.5.17",
     "ai": "^7.0.15",
     "croner": "^10.0.1",

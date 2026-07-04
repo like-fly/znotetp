@@ -32,6 +32,7 @@ import { importZip } from "@/api/import";
 import { exportZip } from "@/api/export";
 import { uploadFiles } from "@/api/file";
 import { searchNotes } from "@/api/search";
+import { chatWithNotes, listThreads, getThread, deleteThread } from "@/api/ai";
 import { listDocs, createDoc, updateDoc, deleteDoc, getAllTopLevelNotebooks, getPublicDoc, getPublicNote } from "@/api/doc";
 import { verifyApiToken } from "@/middleware/auth";
 import type { AppVariables } from "@/types";
@@ -151,6 +152,12 @@ userRouter.post("/note/permanent_delete", permanentDeleteNote);
 userRouter.post("/import", importZip);
 userRouter.get("/export", exportZip);
 userRouter.post("/file/upload", uploadFiles);
+
+// AI 对话
+userRouter.post("/ai/chat", chatWithNotes);
+userRouter.get("/ai/threads", listThreads);
+userRouter.get("/ai/thread/:id", getThread);
+userRouter.delete("/ai/thread/:id", deleteThread);
 
 adminRouter.get("/app_info", getAppInfo);
 adminRouter.get("/list_users", listUsers);

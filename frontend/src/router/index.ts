@@ -19,6 +19,11 @@ const router = createRouter({
             component: () => import("@/views/NoteView.vue"),
         },
         {
+            path: "/app/ai",
+            name: "ai",
+            component: () => import("@/views/AIView.vue"),
+        },
+        {
             path: "/dashboard",
             redirect: "/dashboard/home",
         },

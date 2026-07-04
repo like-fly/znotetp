@@ -4,3 +4,6 @@ export const DB_FILE = "./data/db/znote.db";
 
 /** 向量数据库文件路径 */
 export const VECTOR_DB_FILE = "./data/vector/znote_vector.db";
+
+/** Masra Memory（对话历史）数据库文件路径 */
+export const CHAT_MEMORY_DB = "./data/db/mastra_memory.db";
