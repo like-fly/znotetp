@@ -265,6 +265,7 @@ export default {
     "note.editor.unsaved": "Unsaved",
     "note.editor.auto_saved": "Saved",
     "note.editor.auto_saving": "Saving...",
+    "note.ai.button": "AI Assistant",
     "note.meta.created_at": "Created at",
     "note.meta.updated_at": "Updated at",
     "note.meta.notebook": "Notebook",

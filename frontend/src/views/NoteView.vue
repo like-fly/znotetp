@@ -33,6 +33,7 @@ import { useUserStore } from "@/stores/user";
 import { useNoteSync } from "@/composables/useNoteSync";
 import { fetchNoteVersion } from "@/api/note";
 import { NModal, NInput, NAlert } from "naive-ui";
+import AIView from "@/views/AIView.vue";
 import type { NotebookNode } from "@/types/note";
 import type { CategoryContextAction } from "@/components/note/CategoryContextMenu.vue";
 
@@ -79,6 +80,22 @@ watch(
 );
 
 // ==================== 弹窗控制 ====================
+
+/** AI 弹窗显隐（仅 PC 端使用） */
+const showAiModal = ref(false);
+
+/**
+ * AI 按钮点击处理
+ * PC 端：打开弹窗
+ * 移动端：新窗口打开 /app/ai
+ */
+const handleAiClick = () => {
+    if (isMobile.value) {
+        window.open("/app/ai", "_blank");
+    } else {
+        showAiModal.value = true;
+    }
+};
 
 /** 新建笔记本 Dialog 显隐 */
 const showCreateNotebook = ref(false);
@@ -1430,6 +1447,31 @@ const handleSaveTitle = async () => {
       @view="handleViewVersion"
     />
   </div>
+
+  <!-- ==================== AI 悬浮按钮 ==================== -->
+  <button
+    class="ai-float-btn"
+    :title="t('note.ai.button')"
+    @click="handleAiClick"
+  >
+    <ZIcon name="ri:robot-2-line" :size="26" color="currentColor" />
+  </button>
+
+  <!-- ==================== AI 弹窗（仅 PC 端） ==================== -->
+  <NModal
+    v-if="!isMobile"
+    v-model:show="showAiModal"
+    :auto-focus="false"
+    :mask-closable="true"
+    :close-on-esc="true"
+    display-directive="show"
+    class="ai-modal"
+    :style="{ width: '80vw', height: '75vh', maxWidth: '1200px', maxHeight: '900px', borderRadius: '16px' }"
+  >
+    <div class="ai-modal-content">
+      <AIView />
+    </div>
+  </NModal>
 </template>
 
 <style scoped>
@@ -1457,5 +1499,63 @@ const handleSaveTitle = async () => {
 .note-title-input::placeholder {
   color: #cbd5e1;
   font-weight: 600;
+}
+
+/* AI 悬浮按钮：固定在右下角 */
+.ai-float-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #3B6EA8;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 16px rgba(59, 110, 168, 0.3);
+  border-radius: 50%;
+}
+.ai-float-btn:hover {
+  color: #2d5a8a;
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(59, 110, 168, 0.45);
+}
+.ai-float-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(59, 110, 168, 0.3);
+}
+
+/* AI 弹窗：移除默认 padding，圆角适配 */
+:deep(.ai-modal) {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+:deep(.ai-modal .n-modal) {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+:deep(.ai-modal .n-modal-body) {
+  padding: 0 !important;
+  height: 100%;
+}
+:deep(.ai-modal .n-modal-body-wrapper) {
+  padding: 0 !important;
+  height: 100%;
+}
+
+/* AI 弹窗内容容器：覆盖 AIView 的视口高度 */
+.ai-modal-content {
+  height: 100%;
+  overflow: hidden;
+}
+.ai-modal-content :deep(> div) {
+  height: 100% !important;
+  max-height: 100% !important;
 }
 </style>

@@ -5,6 +5,10 @@
  * 左右分栏：左侧会话列表，右侧聊天区域。
  * SSE 流式对话，支持多轮对话和会话管理。
  * 移动端左侧栏以抽屉形式展示。
+ *
+ * Props:
+ *   - forceMobileLayout: 强制使用移动端布局（隐藏 PC 侧栏，始终显示顶栏汉堡+新对话）
+ *     默认 false（保持原响应式行为）；传 true 则无视屏幕宽度强制移动端布局
  */
 import { ref, computed, h, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -13,6 +17,16 @@ import { IncremarkContent, ThemeProvider } from "@incremark/vue";
 import type { DesignTokens } from "@incremark/theme";
 import "@incremark/theme/styles.css";
 import ZIcon from "@/components/DynamicIcon.vue";
+
+/** 强制使用移动端布局 */
+const props = withDefaults(
+    defineProps<{
+        forceMobileLayout?: boolean;
+    }>(),
+    {
+        forceMobileLayout: false,
+    },
+);
 import { fetchTopNotebooks } from "@/api/notebook";
 import { fetchThreads, fetchThreadDetail, deleteThread } from "@/api/ai";
 import type { Notebook } from "@/types/note";
@@ -486,7 +500,9 @@ onMounted(async () => {
     <div class="flex h-[100dvh] bg-white dark:bg-slate-950">
         <!-- ====== PC 端左侧栏 ====== -->
         <aside
-            class="hidden w-72 shrink-0 flex-col border-r border-slate-200 bg-slate-50 md:flex dark:border-slate-800 dark:bg-slate-900"
+            :class="props.forceMobileLayout
+                ? 'hidden'
+                : 'hidden w-72 shrink-0 flex-col border-r border-slate-200 bg-slate-50 md:flex dark:border-slate-800 dark:bg-slate-900'"
         >
             <!-- 新对话按钮 -->
             <div class="border-b border-slate-200 p-3 dark:border-slate-800">
@@ -559,7 +575,11 @@ onMounted(async () => {
         <!-- ====== 右侧主聊天区 ====== -->
         <div class="flex flex-1 flex-col min-w-0">
             <!-- 移动端固定顶栏：48px 高,汉堡左 + 新对话右,不随内容滚动 -->
-            <div class="flex h-12 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 md:hidden dark:border-slate-800 dark:bg-slate-950">
+            <div
+                :class="props.forceMobileLayout
+                    ? 'flex h-12 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950'
+                    : 'flex h-12 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 md:hidden dark:border-slate-800 dark:bg-slate-950'"
+            >
                 <button
                     class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                     @click="isSidebarOpen = true"
