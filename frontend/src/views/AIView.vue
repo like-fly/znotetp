@@ -326,7 +326,7 @@ const sendMessage = async () => {
     abortController.value = controller;
 
     const token = localStorage.getItem("token");
-    const BASE_URL = import.meta.env.VITE_API_URL || "/";
+    const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
     try {
         const response = await fetch(`${BASE_URL}/api/user/ai/chat`, {
@@ -793,7 +793,7 @@ onMounted(async () => {
                                 @click.stop="showNotebookMenu = !showNotebookMenu"
                             >
                                 <ZIcon name="ri:book-line" :size="16" />
-                                <span class="max-w-[120px] truncate">
+                                <span class="max-w-[100px] truncate">
                                     {{ currentNotebookTitle || t("ai.chat.select_notebook") }}
                                 </span>
                                 <ZIcon

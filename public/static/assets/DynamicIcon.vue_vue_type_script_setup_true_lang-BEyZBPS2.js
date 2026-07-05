@@ -1,0 +1,1 @@
+import{ac as n,a0 as o,b$ as c,I as a,bn as i}from"./index.2026070509.js";const l=n({__name:"DynamicIcon",props:{name:{},size:{},color:{}},setup(e){return(t,r)=>(i(),o(c(a),{icon:e.name,width:e.size||18,height:e.size||18,color:e.color},null,8,["icon","width","height","color"]))}});export{l as _};

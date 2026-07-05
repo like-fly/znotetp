@@ -219,7 +219,7 @@ const sendMessage = async () => {
     const controller = new AbortController();
     abortController.value = controller;
 
-    const BASE_URL = import.meta.env.VITE_API_URL || "/";
+    const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
     try {
         const response = await fetch(`${BASE_URL}/api/doc/chat`, {

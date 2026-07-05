@@ -137,9 +137,9 @@ export async function vectorizeNextBatch(batchSize = 20) {
         }
 
         successIds = toProcess.map(n => n.id);
-        console.log(`向量化完成: 成功 ${successIds.length} 条, 跳过 ${tooLong.length} 条, 失败 ${failedIds.length} 条`);
+        console.log(`Vectorization complete: ${successIds.length} succeeded, ${tooLong.length} skipped, ${failedIds.length} failed`);
     } catch (err) {
-        console.error("向量化失败:", err);
+        console.error("Vectorization failed:", err);
         failedIds = toProcess.map(n => n.id);
     }
 
@@ -281,9 +281,9 @@ export async function updateVectorizedNotes(batchSize = 20) {
         }
 
         successIds = notes.map(n => n.id);
-        console.log(`向量更新完成: 成功 ${successIds.length} 条, 失败 ${failedIds.length} 条`);
+        console.log(`Vector update complete: ${successIds.length} succeeded, ${failedIds.length} failed`);
     } catch (err) {
-        console.error("向量更新失败:", err);
+        console.error("Vector update failed:", err);
         failedIds = notes.map(n => n.id);
     }
 
@@ -421,7 +421,7 @@ export async function chatWithNotes(c: Context) {
                     try { controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n")); } catch {}
                     try { controller.close(); } catch {}
                 } catch (err) {
-                    console.error("AI 对话流式输出异常:", err);
+                    console.error("AI chat streaming error:", err);
                     try {
                         const errorData = JSON.stringify({ type: "error", error: String(err) });
                         controller.enqueue(new TextEncoder().encode(`data: ${errorData}\n\n`));
@@ -440,7 +440,7 @@ export async function chatWithNotes(c: Context) {
             },
         });
     } catch (err) {
-        console.error("AI 对话失败:", err);
+        console.error("AI chat failed:", err);
         return c.json({ code: -1000, msg: "ai.chat.error", data: null });
     }
 }
@@ -524,7 +524,7 @@ export async function guestChat(c: Context) {
                     try { controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n")); } catch {}
                     try { controller.close(); } catch {}
                 } catch (err) {
-                    console.error("访客 AI 对话流式输出异常:", err);
+                    console.error("Guest AI chat streaming error:", err);
                     try {
                         const errorData = JSON.stringify({ type: "error", error: String(err) });
                         controller.enqueue(new TextEncoder().encode(`data: ${errorData}\n\n`));
@@ -543,7 +543,7 @@ export async function guestChat(c: Context) {
             },
         });
     } catch (err) {
-        console.error("访客 AI 对话失败:", err);
+        console.error("Guest AI chat failed:", err);
         return c.json({ code: -1000, msg: "doc.chat.error", data: null });
     }
 }

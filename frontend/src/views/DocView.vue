@@ -415,7 +415,7 @@ watch(activeNoteId, (newId) => {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 50;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
