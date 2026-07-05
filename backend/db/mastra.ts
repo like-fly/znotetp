@@ -171,6 +171,27 @@ export const mastra = new Mastra({
     storage: new LibSQLStore({
         id: "mastra-storage",
         url: `file:${CHAT_MEMORY_DB}`,
+        // 数据保留策略：90 天后自动过滤旧数据
+        retention: {
+            memory: {
+                threads: { maxAge: '90d' },
+                messages: { maxAge: '90d' },
+            },
+        },
     }),
     agents: { ragAgent },
 });
+
+/** 清理过期数据（调用 storage.prune()） */
+export async function pruneExpiredData() {
+    const storage = mastra.getStorage();
+    if (!storage) return;
+
+    const results = await storage.prune({ maxRows: 100_000, pauseMs: 25 });
+    for (const r of results) {
+        if (r.deleted > 0) {
+            console.log(`[Retention] ${r.domain}.${r.table}: deleted ${r.deleted}, done=${r.done}`);
+        }
+    }
+    return results;
+}

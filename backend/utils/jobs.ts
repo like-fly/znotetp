@@ -1,5 +1,6 @@
 import { Cron } from "croner";
 import { vectorizeNextBatch, updateVectorizedNotes } from "@/api/ai";
+import { pruneExpiredData } from "@/db/mastra";
 
 /** 所有已注册的定时任务实例 */
 const cronJobs: Cron[] = [];
@@ -17,6 +18,13 @@ export function startCronJobs() {
     cronJobs.push(
         new Cron("* * * * * *", { interval: 300, protect: true }, async () => {
             await updateVectorizedNotes();
+        })
+    );
+
+    // 每天凌晨 3 点执行数据清理（删除过期的线程和消息）
+    cronJobs.push(
+        new Cron("0 3 * * *", { protect: true }, async () => {
+            await pruneExpiredData();
         })
     );
 }
