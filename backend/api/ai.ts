@@ -7,7 +7,7 @@ import { embedMany } from "ai";
 import { RequestContext } from "@mastra/core/request-context";
 import { vectorStore, INDEX_NAME } from "@/db/vector";
 import { checkNotebookOwnership } from "@/utils/ownership";
-import { getBaseURL, getAIEmbeddingConfig, MAX_CONTENT_LENGTH, VECTOR_DIMENSIONS } from "@/utils/ai-config";
+import { getBaseURL, getAIChatConfig, getAIEmbeddingConfig, MAX_CONTENT_LENGTH, VECTOR_DIMENSIONS } from "@/utils/ai-config";
 
 // ==================== 向量化 ====================
 
@@ -323,6 +323,26 @@ export async function resetVectorization(c: Context) {
     return c.json({ code: 200, msg: "ai.vectorization.reset.success", data: null });
 }
 
+// ==================== 访客 AI 状态 ====================
+
+/**
+ * 检查 AI 功能是否已启用（公开接口，无需认证）
+ * GET /api/ai/status
+ * @returns { enabled: boolean }
+ */
+export async function checkAIStatus(c: Context) {
+    const embeddingConfig = await getAIEmbeddingConfig();
+    const chatConfig = await getAIChatConfig();
+
+    const enabled = !!(embeddingConfig?.enabled && chatConfig?.api_key);
+
+    return c.json({
+        code: 200,
+        msg: "ai.status.success",
+        data: { enabled },
+    });
+}
+
 // ==================== AI 对话 ====================
 
 /**
@@ -422,6 +442,109 @@ export async function chatWithNotes(c: Context) {
     } catch (err) {
         console.error("AI 对话失败:", err);
         return c.json({ code: -1000, msg: "ai.chat.error", data: null });
+    }
+}
+
+// ==================== 访客 AI 对话 ====================
+
+/**
+ * 访客 AI 对话（SSE 流式返回）
+ * POST /api/doc/chat
+ * Body: { notebook_id: number, thread_id: string, message: string }
+ * 基于公开文档（docs 表）进行 AI 对话，无需登录
+ */
+export async function guestChat(c: Context) {
+    const payload = await c.req.json();
+    const { notebook_id, thread_id, message } = payload || {};
+
+    if (!notebook_id || typeof notebook_id !== "number") {
+        return c.json({ code: -1000, msg: "doc.chat.notebook_required", data: null });
+    }
+    if (!thread_id || typeof thread_id !== "string") {
+        return c.json({ code: -1000, msg: "doc.chat.thread_required", data: null });
+    }
+    if (!/^[a-zA-Z0-9_-]{16}$/.test(thread_id)) {
+        return c.json({ code: -1000, msg: "doc.chat.thread_invalid", data: null });
+    }
+    if (!message || typeof message !== "string" || message.trim().length === 0) {
+        return c.json({ code: -1000, msg: "doc.chat.message_required", data: null });
+    }
+
+    // 验证公开文档：notebook_id 必须在 docs 表中且状态为 active
+    const doc = await db
+        .select({ notebook_id: schema.docs.notebook_id, status: schema.docs.status })
+        .from(schema.docs)
+        .where(eq(schema.docs.notebook_id, notebook_id))
+        .get();
+
+    if (!doc || doc.status !== "active") {
+        return c.json({ code: -1000, msg: "doc.chat.doc_not_found", data: null });
+    }
+
+    // 获取笔记本所属用户 ID，供向量检索过滤使用
+    const notebook = await db
+        .select({ user_id: schema.notebooks.user_id })
+        .from(schema.notebooks)
+        .where(eq(schema.notebooks.id, notebook_id))
+        .get();
+
+    if (!notebook) {
+        return c.json({ code: -1000, msg: "doc.chat.notebook_not_found", data: null });
+    }
+
+    const { mastra } = await import("@/db/mastra");
+    const agent = mastra.getAgentById("rag-agent");
+    if (!agent) {
+        return c.json({ code: -1000, msg: "doc.chat.agent_not_found", data: null });
+    }
+
+    const requestContext = new RequestContext();
+    requestContext.set("notebook_id", notebook_id);
+    requestContext.set("user_id", notebook.user_id);
+
+    try {
+        const mastraStream = await agent.stream(message, {
+            memory: {
+                thread: thread_id,
+                resource: `doc-${notebook_id}`,
+            },
+            requestContext,
+            maxSteps: 5,
+        });
+
+        const sseStream = new ReadableStream({
+            async start(controller) {
+                try {
+                    for await (const chunk of mastraStream.fullStream) {
+                        const data = JSON.stringify(chunk);
+                        try {
+                            controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
+                        } catch { break; }
+                    }
+                    try { controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n")); } catch {}
+                    try { controller.close(); } catch {}
+                } catch (err) {
+                    console.error("访客 AI 对话流式输出异常:", err);
+                    try {
+                        const errorData = JSON.stringify({ type: "error", error: String(err) });
+                        controller.enqueue(new TextEncoder().encode(`data: ${errorData}\n\n`));
+                    } catch {}
+                    try { controller.close(); } catch {}
+                }
+            },
+        });
+
+        return new Response(sseStream, {
+            headers: {
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        });
+    } catch (err) {
+        console.error("访客 AI 对话失败:", err);
+        return c.json({ code: -1000, msg: "doc.chat.error", data: null });
     }
 }
 

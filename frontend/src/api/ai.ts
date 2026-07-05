@@ -65,3 +65,17 @@ export const deleteThread = async (threadId: string): Promise<boolean> => {
     const res = await req.delete<ApiResult<null>>(`/api/user/ai/thread/${threadId}`);
     return res.data?.code === 200;
 };
+
+/**
+ * 检查 AI 功能是否已启用（公开接口，无需认证）
+ * GET /api/ai/status
+ * @returns boolean - true 表示已启用
+ *  失败时默认 true（静默降级，不阻塞用户使用）
+ */
+export const fetchAIStatus = async (): Promise<boolean> => {
+    const res = await req.get<ApiResult<{ enabled: boolean }>>("/api/ai/status");
+    if (res.data?.code === 200) {
+        return !!res.data.data?.enabled;
+    }
+    return true;
+};

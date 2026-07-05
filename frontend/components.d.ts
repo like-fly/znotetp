@@ -41,6 +41,7 @@ declare module 'vue' {
     NForm: typeof import('naive-ui')['NForm']
     NFormItem: typeof import('naive-ui')['NFormItem']
     NInput: typeof import('naive-ui')['NInput']
+    NModal: typeof import('naive-ui')['NModal']
     NotebookSwitcher: typeof import('./src/components/note/NotebookSwitcher.vue')['default']
     NoteContextMenu: typeof import('./src/components/note/NoteContextMenu.vue')['default']
     NoteEditor: typeof import('./src/components/note/NoteEditor.vue')['default']

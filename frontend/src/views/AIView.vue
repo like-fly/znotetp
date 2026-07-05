@@ -28,7 +28,7 @@ const props = withDefaults(
     },
 );
 import { fetchTopNotebooks } from "@/api/notebook";
-import { fetchThreads, fetchThreadDetail, deleteThread } from "@/api/ai";
+import { fetchThreads, fetchThreadDetail, deleteThread, fetchAIStatus } from "@/api/ai";
 import type { Notebook } from "@/types/note";
 
 const { t } = useI18n();
@@ -80,6 +80,18 @@ const isSidebarOpen = ref(false);
 const loadingThreads = ref(false);
 const loadingMessages = ref(false);
 const abortController = ref<AbortController | null>(null);
+
+/** AI 功能启用状态：默认 true（避免首屏闪烁），请求完毕后按接口结果调整 */
+const aiEnabled = ref(true);
+
+/** 检查 AI 状态：失败静默降级,保持默认 true 不阻塞用户 */
+const checkAIStatus = async () => {
+    try {
+        aiEnabled.value = await fetchAIStatus();
+    } catch {
+        aiEnabled.value = true;
+    }
+};
 
 /** 滚动到消息底部 */
 const messageContainer = ref<HTMLElement | null>(null);
@@ -477,6 +489,9 @@ watch(selectedThreadId, () => {
 });
 
 onMounted(async () => {
+    // 异步检查 AI 启用状态(不 await,不等它完成,避免阻塞其他初始化)
+    checkAIStatus();
+
     await Promise.all([loadThreads(), loadNotebooks()]);
     // 只读默认 + 单向跟随：从 localStorage 读取当前激活的笔记本 id
     const saved = localStorage.getItem("note-active-notebook-id");
@@ -498,6 +513,22 @@ onMounted(async () => {
 
 <template>
     <div class="flex h-[100dvh] bg-white dark:bg-slate-950">
+        <!-- AI 未启用：完全替换原内容,只显示禁用提示 -->
+        <div
+            v-if="!aiEnabled"
+            class="flex flex-1 flex-col items-center justify-center bg-white px-6 text-center dark:bg-slate-950"
+        >
+            <ZIcon name="ri:robot-2-line" :size="72" class="mb-4 text-slate-300 dark:text-slate-600" />
+            <div class="text-lg font-medium text-slate-700 dark:text-slate-300">
+                {{ t("ai.disabled.title") }}
+            </div>
+            <div class="mt-2 max-w-md text-sm text-slate-400 dark:text-slate-500">
+                {{ t("ai.disabled.description") }}
+            </div>
+        </div>
+
+        <!-- AI 启用：原所有内容 -->
+        <template v-else>
         <!-- ====== PC 端左侧栏 ====== -->
         <aside
             :class="props.forceMobileLayout
@@ -840,6 +871,7 @@ onMounted(async () => {
                 </div>
             </div>
         </div>
+        </template>
     </div>
 </template>
 
