@@ -39,13 +39,20 @@
                     </n-form-item>
                 </n-form>
 
-                <div class="mt-6 flex justify-start">
+                <div class="mt-6 flex gap-3">
                     <n-button
                         type="primary"
                         :loading="embeddingSubmitting"
                         @click="handleEmbeddingSubmit"
                     >
                         {{ t("ai_setting.form.save") }}
+                    </n-button>
+                    <n-button
+                        type="warning"
+                        :loading="resetSubmitting"
+                        @click="showResetDialog = true"
+                    >
+                        {{ t("ai_setting.reset_vector") }}
                     </n-button>
                 </div>
 
@@ -107,6 +114,21 @@
                     </n-button>
                 </div>
             </n-card>
+
+            <!-- 重置向量确认弹窗 -->
+            <n-modal v-model:show="showResetDialog" :mask-closable="false">
+                <n-card :bordered="false" size="small" :title="t('ai_setting.reset_vector')" role="dialog" style="width:420px">
+                    <p class="text-sm text-slate-600">{{ t("ai_setting.reset_vector_warning") }}</p>
+                    <template #footer>
+                        <div class="flex justify-end gap-2">
+                            <n-button @click="showResetDialog = false">{{ t("ai_setting.cancel") }}</n-button>
+                            <n-button type="error" :loading="resetSubmitting" @click="handleResetVector">
+                                {{ t("ai_setting.confirm_reset") }}
+                            </n-button>
+                        </div>
+                    </template>
+                </n-card>
+            </n-modal>
         </div>
     </div>
 </template>
@@ -114,7 +136,7 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from "vue";
 import type { FormInst, FormRules } from "naive-ui";
-import { NButton, NCard, NDivider, NForm, NFormItem, NInput, NSelect, NSwitch, useMessage } from "naive-ui";
+import { NButton, NCard, NDivider, NForm, NFormItem, NInput, NModal, NSelect, NSwitch, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import req from "@/utils/req";
 
@@ -292,6 +314,28 @@ onMounted(() => {
     loadEmbeddingSetting();
     loadChatSetting();
 });
+
+// ==================== 重置向量 ====================
+const showResetDialog = ref(false);
+const resetSubmitting = ref(false);
+
+const handleResetVector = async () => {
+    resetSubmitting.value = true;
+    try {
+        const res = await req.post("/api/admin/reset_vectorization");
+        const result = res.data;
+        if (result?.code === 200) {
+            message.success(t("ai_setting.reset_vector_success"));
+            showResetDialog.value = false;
+        } else {
+            message.error(result?.msg || t("ai_setting.save.failed"));
+        }
+    } catch {
+        message.error(t("ai_setting.save.failed"));
+    } finally {
+        resetSubmitting.value = false;
+    }
+};
 </script>
 
 <style scoped>

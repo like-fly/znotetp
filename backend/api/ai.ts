@@ -165,6 +165,20 @@ export async function vectorizeNextBatch(batchSize = 20) {
     };
 }
 
+/**
+ * 管理员重置向量化（清空向量库 + 重置所有笔记为待向量化）
+ * POST /api/admin/reset_vectorization
+ */
+export async function resetVectorization(c: Context) {
+    await vectorStore.truncateIndex({ indexName: INDEX_NAME });
+
+    await db.update(schema.notes)
+        .set({ is_vectorized: 0, vectorized_at: null })
+        .run();
+
+    return c.json({ code: 200, msg: "ai.vectorization.reset.success", data: null });
+}
+
 // ==================== AI 对话 ====================
 
 /**

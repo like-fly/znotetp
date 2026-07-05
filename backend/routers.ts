@@ -32,7 +32,7 @@ import { importZip } from "@/api/import";
 import { exportZip } from "@/api/export";
 import { uploadFiles } from "@/api/file";
 import { searchNotes } from "@/api/search";
-import { chatWithNotes, listThreads, getThread, deleteThread } from "@/api/ai";
+import { chatWithNotes, listThreads, getThread, deleteThread, resetVectorization } from "@/api/ai";
 import { listDocs, createDoc, updateDoc, deleteDoc, getAllTopLevelNotebooks, getPublicDoc, getPublicNote } from "@/api/doc";
 import { verifyApiToken } from "@/middleware/auth";
 import type { AppVariables } from "@/types";
@@ -174,6 +174,9 @@ adminRouter.get("/doc/list", listDocs);
 adminRouter.post("/doc/create", createDoc);
 adminRouter.post("/doc/update", updateDoc);
 adminRouter.post("/doc/delete", deleteDoc);
+
+// AI 管理
+adminRouter.post("/reset_vectorization", resetVectorization);
 
 // 兜底路由：所有未匹配的 GET 请求返回 SPA HTML，由前端 Vue Router 接管（含 404 页面）
 publicRouter.notFound(index);
