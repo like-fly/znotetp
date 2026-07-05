@@ -20,7 +20,8 @@
     "ai": "^7.0.15",
     "croner": "^10.0.1",
     "drizzle-kit": "^0.31.10",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "hono-rate-limiter": "^0.5.3"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",

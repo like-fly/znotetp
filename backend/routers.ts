@@ -35,6 +35,7 @@ import { searchNotes } from "@/api/search";
 import { chatWithNotes, listThreads, getThread, deleteThread, resetVectorization, guestChat, checkAIStatus } from "@/api/ai";
 import { listDocs, createDoc, updateDoc, deleteDoc, getAllTopLevelNotebooks, getPublicDoc, getPublicNote } from "@/api/doc";
 import { verifyApiToken } from "@/middleware/auth";
+import { docChatRateLimiter } from "@/middleware/rate-limit";
 import type { AppVariables } from "@/types";
 
 const allowedOrigin = Bun.env.ZNOTE_CORS_ORIGIN?.trim() || "*";
@@ -110,7 +111,7 @@ publicRouter.get("/s/*", index);
 
 publicRouter.get("/api/doc/:slug", getPublicDoc);
 publicRouter.get("/api/doc/:slug/note/:noteId", getPublicNote);
-publicRouter.post("/api/doc/chat", guestChat);
+publicRouter.post("/api/doc/chat", docChatRateLimiter, guestChat);
 publicRouter.get("/api/share/:shareId", getShare);
 publicRouter.get("/api/system/status", getSystemStatus);
 publicRouter.get("/api/ai/status", checkAIStatus);

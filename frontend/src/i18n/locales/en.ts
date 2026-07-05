@@ -518,6 +518,7 @@ export default {
     "doc.chat.disclaimer": "AI responses are based on this document's content, for reference only",
     "doc.chat.limit_reached": "Conversation limit reached, click + to start a new one",
     "doc.chat.limit_hint": "Conversation limit reached (10 rounds), click + to start a new one",
+    "doc.chat.rate_limited": "Too many requests",
     "doc.chat.notebook_required": "Notebook ID is required",
     "doc.chat.thread_required": "Thread ID is required",
     "doc.chat.thread_invalid": "Invalid thread ID format",

@@ -518,6 +518,7 @@ export default {
     "doc.chat.disclaimer": "AI 回答基于当前文档内容生成，仅供参考",
     "doc.chat.limit_reached": "已达到对话上限，点击 + 按钮开始新对话",
     "doc.chat.limit_hint": "已达到对话上限（10轮），点击 + 开启新对话",
+    "doc.chat.rate_limited": "请求过于频繁",
     "doc.chat.notebook_required": "请输入笔记本 ID",
     "doc.chat.thread_required": "请输入会话 ID",
     "doc.chat.thread_invalid": "会话 ID 格式不正确",
