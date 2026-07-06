@@ -114,8 +114,6 @@ const aiEnabled = ref(true);
 
 /** textarea 自动撑高 */
 const TEXTAREA_MAX_HEIGHT = 88;
-const COMPACT_THRESHOLD = 60;
-const isTall = ref(false);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 /** 消息容器引用 */
@@ -157,7 +155,6 @@ const growTextarea = (el: HTMLTextAreaElement) => {
     const h = Math.min(el.scrollHeight, TEXTAREA_MAX_HEIGHT);
     el.style.height = `${h}px`;
     el.style.overflowY = el.scrollHeight > TEXTAREA_MAX_HEIGHT ? "auto" : "hidden";
-    isTall.value = h > COMPACT_THRESHOLD;
 };
 
 const autoGrow = (e: Event) => {
@@ -398,6 +395,7 @@ onMounted(async () => {
 
     await nextTick();
     scrollToBottom();
+    focusInput();
 });
 </script>
 
@@ -551,20 +549,7 @@ onMounted(async () => {
                     <div class="mx-auto max-w-3xl px-1 py-3">
                         <div
                             class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-1.5 transition focus-within:border-[#86A6CA] focus-within:bg-slate-50 focus-within:shadow-[0_0_0_1px_#86A6CA,0_0_12px_2px_rgba(134,166,202,0.4)] dark:border-slate-700/60 dark:bg-slate-900/80 dark:focus-within:border-[#86A6CA] dark:focus-within:bg-slate-900 dark:focus-within:shadow-[0_0_0_1px_#86A6CA,0_0_12px_2px_rgba(134,166,202,0.4)]"
-                            :class="isTall ? 'ai-grid-expanded' : 'ai-grid-compact'"
                         >
-                            <!-- + 新建对话按钮 -->
-                            <div class="ai-cell-notebook shrink-0">
-                                <button
-                                    type="button"
-                                    class="flex h-[30px] w-[30px] items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200/60 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700/60 dark:hover:text-slate-200"
-                                    title="新建对话"
-                                    @click="clearAndNewThread"
-                                >
-                                    <ZIcon name="ri:add-line" :size="18" />
-                                </button>
-                            </div>
-
                             <!-- textarea 输入框 -->
                             <textarea
                                 ref="textareaRef"
@@ -572,14 +557,25 @@ onMounted(async () => {
                                 :placeholder="hasReachedLimit ? t('doc.chat.limit_reached') : t('doc.chat.input_placeholder')"
                                 :disabled="hasReachedLimit"
                                 rows="1"
-                                class="ai-cell-input block w-full resize-none border-0 bg-transparent px-2 py-0 text-sm leading-6 text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-200 dark:placeholder:text-slate-500"
+                                class="mb-1 block w-full resize-none border-0 bg-transparent px-2 py-0 text-sm leading-6 text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-200 dark:placeholder:text-slate-500"
                                 style="max-height: 88px"
                                 @input="autoGrow"
                                 @keydown="handleKeydown"
                             ></textarea>
 
-                            <!-- 发送/停止按钮 -->
-                            <div class="ai-cell-send shrink-0">
+                            <!-- 下排操作按钮 -->
+                            <div class="flex items-center justify-between">
+                                <!-- + 新建对话按钮 -->
+                                <button
+                                    type="button"
+                                    class="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#4A6FA5]/10 text-[#4A6FA5] transition hover:bg-[#4A6FA5]/20 hover:text-[#3F5F95] dark:bg-[#7DA3CC]/15 dark:text-[#7DA3CC] dark:hover:bg-[#7DA3CC]/25 dark:hover:text-[#8DB8DE]"
+                                    title="新建对话"
+                                    @click="clearAndNewThread"
+                                >
+                                    <ZIcon name="ri:add-line" :size="16" />
+                                </button>
+
+                                <!-- 发送/停止按钮 -->
                                 <button
                                     v-if="isStreaming"
                                     class="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-red-500 text-white transition hover:bg-red-600"
@@ -591,10 +587,10 @@ onMounted(async () => {
                                 <button
                                     v-else
                                     class="flex h-[34px] w-[34px] items-center justify-center rounded-full transition"
-                                    :class="inputMessage.trim()
+                                    :class="inputMessage.trim().length >= 2
                                         ? 'bg-[#4A6FA5] text-white shadow-[0_2px_8px_rgba(74,111,165,0.4)] hover:bg-[#3F5F95] hover:shadow-[0_4px_12px_rgba(74,111,165,0.5)] active:bg-[#345485] active:shadow-[0_1px_4px_rgba(74,111,165,0.35)] dark:shadow-[0_2px_8px_rgba(134,166,202,0.35)] dark:hover:shadow-[0_4px_12px_rgba(134,166,202,0.45)]'
                                         : 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600'"
-                                    :disabled="!inputMessage.trim() || hasReachedLimit"
+                                    :disabled="inputMessage.trim().length < 2 || hasReachedLimit"
                                     @click="sendMessage"
                                 >
                                     <ZIcon name="ri:send-plane-fill" :size="14" />
@@ -680,37 +676,6 @@ onMounted(async () => {
         -webkit-overflow-scrolling: touch;
     }
     :deep(.ai-markdown) th, :deep(.ai-markdown) td { white-space: nowrap; }
-}
-
-/** AI 输入区 grid 布局 */
-.ai-grid-compact {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas: "notebook input send";
-    align-items: center;
-    column-gap: 0.5rem;
-}
-.ai-grid-compact .ai-cell-notebook { grid-area: notebook; }
-.ai-grid-compact .ai-cell-input    { grid-area: input; min-width: 0; }
-.ai-grid-compact .ai-cell-send     { grid-area: send; }
-
-.ai-grid-expanded {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-        "input input input"
-        "notebook . send";
-    align-items: center;
-    row-gap: 0.375rem;
-    column-gap: 0.5rem;
-}
-.ai-grid-expanded .ai-cell-notebook { grid-area: notebook; justify-self: start; }
-.ai-grid-expanded .ai-cell-input    { grid-area: input; min-width: 0; }
-.ai-grid-expanded .ai-cell-send     { grid-area: send; justify-self: end; }
-
-/** textarea 高度变化时平滑过渡 */
-.ai-cell-input {
-    transition: height 0.15s ease;
 }
 
 /** 细滚动条 */

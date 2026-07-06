@@ -160,20 +160,15 @@ onBeforeUnmount(() => {
 
 /** textarea 自动撑高：默认 1 行,内容多时自动增长,上限 3 行(约 88px) */
 const TEXTAREA_MAX_HEIGHT = 88;
-/** compact → expanded 切换的高度阈值(约 2.5 行,> 2 行后开始两段式布局) */
-const COMPACT_THRESHOLD = 60;
-/** 是否处于「内容多」状态(> 2 行),用于切换 grid 模板 */
-const isTall = ref(false);
 /** textarea DOM 引用,用于在 send 清空等程序化变更时同步高度 */
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
-/** 单一职责:设置 textarea 高度并更新 isTall */
+/** 单一职责:设置 textarea 高度 */
 const growTextarea = (el: HTMLTextAreaElement) => {
     el.style.height = "auto";
     const h = Math.min(el.scrollHeight, TEXTAREA_MAX_HEIGHT);
     el.style.height = `${h}px`;
     el.style.overflowY = el.scrollHeight > TEXTAREA_MAX_HEIGHT ? "auto" : "hidden";
-    isTall.value = h > COMPACT_THRESHOLD;
 };
 
 const autoGrow = (e: Event) => {
@@ -190,7 +185,7 @@ const focusInput = () => {
     }
 };
 
-/** 监听 inputMessage 变化,程序化修改(如 send 后清空)时同步高度和布局 */
+/** 监听 inputMessage 变化,程序化修改(如 send 后清空)时同步高度 */
 watch(inputMessage, () => {
     if (textareaRef.value) growTextarea(textareaRef.value);
 });
@@ -777,76 +772,76 @@ onMounted(async () => {
             <!-- 输入区 -->
             <div class="shrink-0 border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
                 <div class="mx-auto max-w-3xl px-4 py-3">
-                    <!-- 一体外框：grid 布局,根据 isTall 切换单行/双行模板 -->
+                    <!-- 输入框：上排 textarea + 下排操作按钮 -->
                     <div
                         class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-1.5 transition focus-within:border-[#86A6CA] focus-within:bg-slate-50 focus-within:shadow-[0_0_0_1px_#86A6CA,0_0_12px_2px_rgba(134,166,202,0.4)] dark:border-slate-700/60 dark:bg-slate-900/80 dark:focus-within:border-[#86A6CA] dark:focus-within:bg-slate-900 dark:focus-within:shadow-[0_0_0_1px_#86A6CA,0_0_12px_2px_rgba(134,166,202,0.4)]"
-                        :class="isTall ? 'ai-grid-expanded' : 'ai-grid-compact'"
                     >
-                        <!-- 笔记本选择器 cell：原生 button + 绝对定位菜单 -->
-                        <div ref="notebookButtonRef" class="ai-cell-notebook relative shrink-0">
-                            <button
-                                type="button"
-                                class="flex h-[30px] items-center gap-1.5 px-2 text-sm transition active:bg-transparent"
-                                :class="notebookId
-                                    ? 'text-slate-700 dark:text-slate-200'
-                                    : 'text-amber-700 dark:text-amber-300'"
-                                @click.stop="showNotebookMenu = !showNotebookMenu"
-                            >
-                                <ZIcon name="ri:book-line" :size="16" />
-                                <span class="max-w-[100px] truncate">
-                                    {{ currentNotebookTitle || t("ai.chat.select_notebook") }}
-                                </span>
-                                <ZIcon
-                                    name="ri:arrow-down-s-line"
-                                    :size="14"
-                                    :class="['transition-transform', showNotebookMenu && 'rotate-180']"
-                                />
-                            </button>
-
-                            <Transition name="ai-menu">
-                                <div
-                                    v-if="showNotebookMenu"
-                                    ref="notebookMenuRef"
-                                    class="absolute bottom-full left-0 z-50 mb-1 min-w-[180px] rounded-lg border border-slate-200/80 bg-white py-1 dark:border-slate-700/60 dark:bg-slate-800"
-                                >
-                                    <button
-                                        v-for="nb in notebooks"
-                                        :key="nb.id"
-                                        type="button"
-                                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-slate-200/60 dark:hover:bg-slate-700/60"
-                                        :class="notebookId === nb.id
-                                            ? 'text-blue-600 dark:text-blue-400'
-                                            : 'text-slate-700 dark:text-slate-200'"
-                                        @click="handleSelectNotebook(nb.id)"
-                                    >
-                                        <ZIcon name="ri:book-line" :size="15" />
-                                        <span class="flex-1 truncate">{{ nb.title }}</span>
-                                        <ZIcon
-                                            v-if="notebookId === nb.id"
-                                            name="ri:check-line"
-                                            :size="14"
-                                            class="shrink-0"
-                                        />
-                                    </button>
-                                </div>
-                            </Transition>
-                        </div>
-
-                        <!-- textarea cell -->
+                        <!-- textarea -->
                         <textarea
                             ref="textareaRef"
                             v-model="inputMessage"
                             :placeholder="t('ai.chat.input_placeholder')"
                             :disabled="!notebookId"
                             rows="1"
-                            class="ai-cell-input block w-full resize-none border-0 bg-transparent px-2 py-0 text-sm leading-6 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-200 dark:placeholder:text-slate-500"
+                            class="mb-1 block w-full resize-none border-0 bg-transparent px-2 py-0 text-sm leading-6 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-200 dark:placeholder:text-slate-500"
                             style="max-height: 88px"
                             @input="autoGrow"
                             @keydown="handleKeydown"
                         ></textarea>
 
-                        <!-- 发送按钮 cell -->
-                        <div class="ai-cell-send shrink-0">
+                        <!-- 下排操作按钮 -->
+                        <div class="flex items-center justify-between">
+                            <!-- 笔记本选择器 -->
+                            <div ref="notebookButtonRef" class="relative shrink-0">
+                                <button
+                                    type="button"
+                                    class="flex h-[30px] items-center gap-1.5 px-2 text-sm transition active:bg-transparent"
+                                    :class="notebookId
+                                        ? 'text-slate-700 dark:text-slate-200'
+                                        : 'text-amber-700 dark:text-amber-300'"
+                                    @click.stop="showNotebookMenu = !showNotebookMenu"
+                                >
+                                    <ZIcon name="ri:book-line" :size="16" />
+                                    <span class="max-w-[100px] truncate">
+                                        {{ currentNotebookTitle || t("ai.chat.select_notebook") }}
+                                    </span>
+                                    <ZIcon
+                                        name="ri:arrow-down-s-line"
+                                        :size="14"
+                                        :class="['transition-transform', showNotebookMenu && 'rotate-180']"
+                                    />
+                                </button>
+
+                                <Transition name="ai-menu">
+                                    <div
+                                        v-if="showNotebookMenu"
+                                        ref="notebookMenuRef"
+                                        class="absolute bottom-full left-0 z-50 mb-1 min-w-[180px] rounded-lg border border-slate-200/80 bg-white py-1 dark:border-slate-700/60 dark:bg-slate-800"
+                                    >
+                                        <button
+                                            v-for="nb in notebooks"
+                                            :key="nb.id"
+                                            type="button"
+                                            class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-slate-200/60 dark:hover:bg-slate-700/60"
+                                            :class="notebookId === nb.id
+                                                ? 'text-blue-600 dark:text-blue-400'
+                                                : 'text-slate-700 dark:text-slate-200'"
+                                            @click="handleSelectNotebook(nb.id)"
+                                        >
+                                            <ZIcon name="ri:book-line" :size="15" />
+                                            <span class="flex-1 truncate">{{ nb.title }}</span>
+                                            <ZIcon
+                                                v-if="notebookId === nb.id"
+                                                name="ri:check-line"
+                                                :size="14"
+                                                class="shrink-0"
+                                            />
+                                        </button>
+                                    </div>
+                                </Transition>
+                            </div>
+
+                            <!-- 发送/停止按钮 -->
                             <button
                                 v-if="isStreaming"
                                 class="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-red-500 text-white transition hover:bg-red-600"
@@ -858,10 +853,10 @@ onMounted(async () => {
                             <button
                                 v-else
                                 class="flex h-[34px] w-[34px] items-center justify-center rounded-full transition"
-                                :class="notebookId && inputMessage.trim()
+                                :class="notebookId && inputMessage.trim().length >= 2
                                     ? 'bg-[#4A6FA5] text-white shadow-[0_2px_8px_rgba(74,111,165,0.4)] hover:bg-[#3F5F95] hover:shadow-[0_4px_12px_rgba(74,111,165,0.5)] active:bg-[#345485] active:shadow-[0_1px_4px_rgba(74,111,165,0.35)] dark:shadow-[0_2px_8px_rgba(134,166,202,0.35)] dark:hover:shadow-[0_4px_12px_rgba(134,166,202,0.45)]'
                                     : 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600'"
-                                :disabled="!notebookId || !inputMessage.trim()"
+                                :disabled="!notebookId || inputMessage.trim().length < 2"
                                 @click="sendMessage"
                             >
                                 <ZIcon name="ri:send-plane-fill" :size="14" />
@@ -948,41 +943,6 @@ onMounted(async () => {
         -webkit-overflow-scrolling: touch;
     }
     :deep(.ai-markdown) th, :deep(.ai-markdown) td { white-space: nowrap; }
-}
-
-/** AI 输入区 grid 布局
- *  - compact（≤2 行）：三列横向 [notebook | input | send]
- *  - expanded（>2 行）：两行,首行 input 占满,次行 [notebook | 留白 | send]
- *  同一组 DOM 节点,通过 grid-area 重定位,焦点不丢
- */
-.ai-grid-compact {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas: "notebook input send";
-    align-items: center;
-    column-gap: 0.5rem;
-}
-.ai-grid-compact .ai-cell-notebook { grid-area: notebook; }
-.ai-grid-compact .ai-cell-input    { grid-area: input; min-width: 0; }
-.ai-grid-compact .ai-cell-send     { grid-area: send; }
-
-.ai-grid-expanded {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-        "input input input"
-        "notebook . send";
-    align-items: center;
-    row-gap: 0.375rem;
-    column-gap: 0.5rem;
-}
-.ai-grid-expanded .ai-cell-notebook { grid-area: notebook; justify-self: start; }
-.ai-grid-expanded .ai-cell-input    { grid-area: input; min-width: 0; }
-.ai-grid-expanded .ai-cell-send     { grid-area: send; justify-self: end; }
-
-/** textarea 高度变化时平滑过渡(配合 JS 显式设置 height) */
-.ai-cell-input {
-    transition: height 0.15s ease;
 }
 
 /** 细滚动条：覆盖 PC 侧栏会话列表 + 消息区
