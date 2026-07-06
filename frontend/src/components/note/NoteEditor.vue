@@ -43,7 +43,11 @@ const getContent = (): string => {
     return editorRef.value?.getContent() ?? "";
 };
 
-defineExpose({ getContent });
+const scrollToHeading = (index: number): void => {
+    editorRef.value?.scrollToHeading(index);
+};
+
+defineExpose({ getContent, scrollToHeading });
 </script>
 
 <template>

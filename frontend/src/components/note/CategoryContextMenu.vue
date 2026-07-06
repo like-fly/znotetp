@@ -17,7 +17,7 @@ import ZIcon from "@/components/DynamicIcon.vue";
 import type { NotebookNode } from "@/types/note";
 
 /** 右键菜单可触发的操作 */
-export type CategoryContextAction = "rename" | "delete" | "move" | "export";
+export type CategoryContextAction = "create_note" | "rename" | "delete" | "move" | "export";
 
 const props = defineProps<{
     show: boolean;
@@ -39,6 +39,12 @@ const dropdownThemeOverrides = {
 };
 
 const menuOptions = [
+    {
+        label: t("note.note.create.button"),
+        key: "create_note",
+        icon: () => h(ZIcon, { name: "ri:sticky-note-add-line", size: 16 }),
+    },
+    { type: "divider", key: "d-create-note" },
     {
         label: t("note.category.context.rename"),
         key: "rename",
@@ -62,7 +68,7 @@ const menuOptions = [
 ];
 
 const handleSelect = (key: string) => {
-    if (props.node && (key === "rename" || key === "delete" || key === "move" || key === "export")) {
+    if (props.node && (key === "create_note" || key === "rename" || key === "delete" || key === "move" || key === "export")) {
         emit("select", key as CategoryContextAction, props.node);
     }
     emit("update:show", false);

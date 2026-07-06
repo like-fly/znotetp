@@ -43,7 +43,15 @@ const getContent = (): string => {
     return vditor?.getValue() ?? "";
 };
 
-defineExpose({ getContent });
+const scrollToHeading = (index: number): void => {
+    const root = editorRef.value;
+    if (!root) return;
+    const headings = root.querySelectorAll("h1, h2, h3, h4, h5, h6");
+    const target = headings[index] as HTMLElement | undefined;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+defineExpose({ getContent, scrollToHeading });
 
 /**
  * onMounted 阶段创建 Vditor 实例

@@ -31,6 +31,21 @@ const createSession = async (uid: number, role: "admin" | "user", c: Context) =>
     return token;
 };
 
+const createDefaultNotebook = async (uid: number) => {
+    const now = new Date();
+    await db.insert(schema.notebooks)
+        .values({
+            user_id: uid,
+            parent_id: null,
+            title: "默认笔记本",
+            description: "",
+            sort_order: 0,
+            created_at: now,
+            updated_at: now,
+        })
+        .run();
+};
+
 export const initUser = async (c: Context) => {
     if (await checkSystemInitialized()) {
         return c.json({ code: -1000, msg: "already.initialized", data: null });
@@ -52,7 +67,7 @@ export const initUser = async (c: Context) => {
         return c.json({ code: -1000, msg: "invalid.password", data: null });
     }
 
-    await db.insert(schema.users)
+    const [user] = await db.insert(schema.users)
         .values({
             username,
             email,
@@ -61,7 +76,9 @@ export const initUser = async (c: Context) => {
             reg_ip: getClientIp(c),
             reg_ua: getRequestUserAgent(c),
         })
-        .run();
+        .returning({ id: schema.users.id });
+
+    await createDefaultNotebook(user.id);
 
     return c.json({ code: 200, msg: "init.success", data: null });
 };
@@ -126,6 +143,8 @@ export const register = async (c: Context) => {
         email: schema.users.email,
         role: schema.users.role,
     });
+
+    await createDefaultNotebook(user.id);
 
     const token = await createSession(user.id, user.role, c);
 

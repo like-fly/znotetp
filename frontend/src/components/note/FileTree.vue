@@ -1,0 +1,234 @@
+<script setup lang="ts">
+import { computed, provide, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { useMessage } from "naive-ui";
+import ZIcon from "@/components/DynamicIcon.vue";
+import FileTreeNode from "@/components/note/FileTreeNode.vue";
+import NoteContextMenu, { type NoteContextAction } from "@/components/note/NoteContextMenu.vue";
+import MoveDialog from "@/components/note/dialogs/MoveDialog.vue";
+import ShareDialog from "@/components/note/dialogs/ShareDialog.vue";
+import { useNoteStore } from "@/stores/note";
+import type { Note, NotebookNode } from "@/types/note";
+
+const { t } = useI18n();
+const message = useMessage();
+const noteStore = useNoteStore();
+
+const props = defineProps<{
+    tree: NotebookNode[];
+    activeCategoryId: number | null;
+    activeNoteId: number | null;
+    isMobile: boolean;
+}>();
+
+const emit = defineEmits<{
+    (e: "selectCategory", id: number): void;
+    (e: "selectNote", id: number): void;
+    (e: "requestDialog", parentId: number, parentName: string): void;
+    (e: "contextmenu", node: NotebookNode, event: MouseEvent): void;
+    (e: "blankContextmenu", event: MouseEvent): void;
+    (e: "blankClick"): void;
+}>();
+
+const expandedIds = ref<Set<number>>(new Set());
+const toggleExpand = (nodeId: number) => {
+    const next = new Set(expandedIds.value);
+    if (next.has(nodeId)) next.delete(nodeId);
+    else next.add(nodeId);
+    expandedIds.value = next;
+};
+provide("fileTreeExpand", { expandedIds, toggleExpand });
+
+watch(
+    () => noteStore.activeCategoryId,
+    (id) => {
+        if (id === null) return;
+        expandedIds.value = new Set([...expandedIds.value, id]);
+    },
+    { immediate: true },
+);
+
+watch(
+    () => noteStore.activeNotebookId,
+    (id) => {
+        if (id !== null && !noteStore.loadedCategoryIds.has(id)) {
+            void noteStore.loadCategoryNotes(id);
+        }
+    },
+    { immediate: true },
+);
+
+const menuShow = ref(false);
+const menuX = ref(0);
+const menuY = ref(0);
+const menuNote = ref<Note | null>(null);
+const showMoveDialog = ref(false);
+const moveNote = ref<Note | null>(null);
+const shareDialogShow = ref(false);
+const shareNoteId = ref(0);
+const shareNoteTitle = ref("");
+
+const currentCategoryTree = computed(() => noteStore.activeNotebook?.children ?? []);
+const rootNotes = computed(() => {
+    const rootId = noteStore.activeNotebookId;
+    if (rootId === null || noteStore.searchMode || noteStore.trashMode) return [];
+    return noteStore.notesByCategory[rootId] ?? [];
+});
+const isLoading = computed(() => noteStore.loading.tree || noteStore.loading.search || noteStore.loading.trash);
+const resultNotes = computed(() => {
+    if (noteStore.trashMode) return noteStore.trashNotes;
+    if (noteStore.searchMode) return noteStore.searchResults;
+    return [];
+});
+const resultTitle = computed(() => noteStore.trashMode ? t("note.trash.title") : t("note.note.search.results"));
+const emptyText = computed(() => noteStore.trashMode ? t("note.trash.empty") : t("note.note.search.no_results"));
+
+const handleNoteContextMenu = (note: Note, event: MouseEvent) => {
+    menuNote.value = note;
+    menuX.value = event.clientX;
+    menuY.value = event.clientY;
+    menuShow.value = true;
+};
+
+const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
+    if (action === "open_new_window") {
+        window.open(`/app/note/${note.id}`, "_blank");
+        return;
+    }
+    if (action === "trash") {
+        await noteStore.deleteNote(note.id);
+        message.success(t("note.context.trash.success"));
+        return;
+    }
+    if (action === "permanent_delete") {
+        await noteStore.permanentDeleteNote(note.id);
+        message.success(t("note.context.permanent_delete.success"));
+        return;
+    }
+    if (action === "move") {
+        moveNote.value = note;
+        showMoveDialog.value = true;
+        return;
+    }
+    if (action === "share") {
+        shareNoteId.value = note.id;
+        shareNoteTitle.value = note.title;
+        shareDialogShow.value = true;
+        return;
+    }
+    if (action === "disable_vectorize") {
+        await noteStore.updateNote(note.id, { allow_vectorize: 0 }, false);
+        message.success(t("note.context.disable_vectorize.success"));
+        return;
+    }
+    if (action === "enable_vectorize") {
+        await noteStore.updateNote(note.id, { allow_vectorize: 1 }, false);
+        message.success(t("note.context.enable_vectorize.success"));
+        return;
+    }
+    const next = note.is_pinned === 1 ? 0 : 1;
+    await noteStore.updateNote(note.id, { is_pinned: next });
+    message.success(next === 1 ? t("note.context.pin.success") : t("note.context.unpin.success"));
+};
+
+const handleMoveConfirm = async (targetId: number) => {
+    if (!moveNote.value) return;
+    await noteStore.moveNote(moveNote.value.id, targetId);
+    message.success(t("note.move.success"));
+    showMoveDialog.value = false;
+};
+
+const handleBlankClick = (event: MouseEvent) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('[data-file-tree-item="true"]')) return;
+    emit("blankClick");
+};
+</script>
+
+<template>
+  <div class="flex h-full flex-col bg-[#f7f7f5]" @click="handleBlankClick" @contextmenu.prevent="(e: MouseEvent) => emit('blankContextmenu', e)">
+    <div class="flex-1 overflow-y-auto px-2 py-2">
+      <div v-if="isLoading" class="py-8 text-center text-xs text-slate-400">Loading...</div>
+
+      <template v-else-if="noteStore.searchMode || noteStore.trashMode">
+        <div class="mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-2 px-1 text-xs text-slate-500">
+          <ZIcon :name="noteStore.trashMode ? 'ri:delete-bin-line' : 'ri:search-line'" :size="13" color="currentColor" />
+          <span>{{ resultTitle }}</span>
+          <span class="text-slate-400">({{ resultNotes.length }})</span>
+        </div>
+        <button
+          v-for="note in resultNotes"
+          :key="note.id"
+          data-file-tree-item="true"
+          class="flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-[13px] leading-5 transition"
+          :class="activeNoteId === note.id ? 'bg-slate-200 text-slate-950' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'"
+          type="button"
+          @click="emit('selectNote', note.id)"
+          @contextmenu.prevent.stop="(e: MouseEvent) => handleNoteContextMenu(note, e)"
+        >
+          <ZIcon name="ri:file-text-line" :size="14" color="currentColor" class="shrink-0 opacity-80" />
+          <span class="min-w-0 flex-1 truncate">{{ note.title }}</span>
+          <span v-if="noteStore.searchMode" class="max-w-[96px] truncate text-[11px] opacity-60">{{ noteStore.getCategoryName(note.notebook_id) }}</span>
+        </button>
+        <div v-if="resultNotes.length === 0" class="px-3 py-8 text-center text-xs text-slate-400">{{ emptyText }}</div>
+      </template>
+
+      <template v-else>
+        <button
+          v-for="note in rootNotes"
+          :key="`root-${note.id}`"
+          data-file-tree-item="true"
+          class="group flex w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-[13px] leading-5 transition"
+          :class="activeNoteId === note.id ? 'bg-slate-200 text-slate-950' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'"
+          style="padding-left: 34px"
+          type="button"
+          @click="emit('selectNote', note.id)"
+          @contextmenu.prevent.stop="(e: MouseEvent) => handleNoteContextMenu(note, e)"
+        >
+          <ZIcon name="ri:file-text-line" :size="14" color="currentColor" class="shrink-0 opacity-80" />
+          <span class="min-w-0 flex-1 truncate">{{ note.title }}</span>
+        </button>
+        <FileTreeNode
+          v-for="node in props.tree"
+          :key="node.id"
+          :node="node"
+          :active-category-id="activeCategoryId"
+          :active-note-id="activeNoteId"
+          :level="0"
+          :is-mobile="props.isMobile"
+          @select-category="(id: number) => emit('selectCategory', id)"
+          @select-note="(id: number) => emit('selectNote', id)"
+          @request-dialog="(pid: number, pname: string) => emit('requestDialog', pid, pname)"
+          @contextmenu="(n: NotebookNode, e: MouseEvent) => emit('contextmenu', n, e)"
+          @note-contextmenu="handleNoteContextMenu"
+        />
+        <div v-if="props.tree.length === 0" class="px-3 py-8 text-center text-xs text-slate-400">{{ t('note.category.empty') }}</div>
+      </template>
+    </div>
+
+    <NoteContextMenu
+      v-model:show="menuShow"
+      :x="menuX"
+      :y="menuY"
+      :note="menuNote"
+      @select="handleMenuSelect"
+    />
+
+    <MoveDialog
+      v-model:show="showMoveDialog"
+      type="note"
+      :source-id="moveNote?.id ?? 0"
+      :source-name="moveNote?.title ?? ''"
+      :notebook-tree="currentCategoryTree"
+      :current-category-id="moveNote?.notebook_id ?? undefined"
+      @confirm="handleMoveConfirm"
+      @cancel="showMoveDialog = false"
+    />
+
+    <ShareDialog
+      v-model:show="shareDialogShow"
+      :note-id="shareNoteId"
+      :note-title="shareNoteTitle"
+    />
+  </div>
+</template>
