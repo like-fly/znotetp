@@ -1,42 +1,19 @@
 # ZNoteTP
 
-ZNoteTP是一款小而美的纯笔记应用，原生支持 Markdown 所见即所得，一处部署，随处可用。使用Bun + Hono.js + libSQL + Vue3开发。
+ZNoteTP 源根据ZNote二次开发，感谢 @xiaoz，这里附上原项目地址与演示地址
 
-![CleanShot 2026-06-26 at 14.09.56@2x.png](https://img.rss.ink/2026/06/26/K5PYJaG2.png)
+* ZNote: [https://github.com/helloxz/znote](https://github.com/helloxz/znote)
+* ZNote Demo: https://znote.xphub.dev/
 
-* **演示地址：** [https://znote.xphub.dev/](https://znote.xphub.dev/)
-* **账号：** `demo`
-* **密码：** `blog.xiaoz.org`
+
+ZNoteTP 是在 ZNote 的基础上尽量做减法，使用上因为我比较喜欢 Typora，我一直在找一款像 Typora 类似的简洁的 Docker 部署的，Web 访问的笔记软件，可惜没有找到，ZNote 本身比较简洁，笔记软件该有的重要功能都有，所以在此基础上改造更方便，于是有了 ZNoteTP，所以TP的含义就是 Typora 风格的意思。
+
+如果没有ZNote，我的想法可能是做一款 Web 访问的极简笔记软件，可能数据库都不需要，直接按目录结构保存即可，与Typora类似。
+
 
 ## 特点
 
-- **纯笔记应用**：无脑图、无清单、无多余功能，只专注于笔记本身
-- **原生 Markdown**：所见即所得，支持所见即所得，专注内容不打扰
-- **无同步困扰**：服务端集中存储数据，用户无需折腾同步方案
-- **AI 智能检索**：与 AI 对话，智能检索笔记内容，精准匹配并回答
-- **私有部署**：提供 Docker 私有部署，数据完全自主掌控，本地存储，隐私无忧
-- **WEB 访问**：浏览器即开即用，无需安装客户端，跨平台无障碍
-- **拖拽排序**：笔记分类、笔记内容均支持拖拽排序
-- **数据导入**：支持将本地 .md 文件分类打包 ZIP 后一键导入
-- **数据导出：** 支持笔记数据导出，方便您迁移到其它笔记
-- **公共文档：** 一键将笔记本公开分享为类似语雀的文档系统
-- **笔记分享：** 支持将单篇笔记设置密码公开分享，还可以设置有效期
-- **版本历史**：自动记录最近 50 个历史版本，随时回滚无惧丢失
-- **移动端支持**：提供配套的安卓APP，移动端使用更佳
-- **多用户支持**：支持多账号体系（最多 5 用户），适合个人或家庭使用
-- **全局搜索**：跨分类全文检索，输入关键词秒级定位所需笔记
-- **API 支持**：提供 RESTful API，方便第三方工具集成与自动化操作
-
-### Todo List
-
-- [x] 导出所有笔记
-- [x] 文档功能
-- [x] 笔记分享
-- [x] 手机客户端
-- [x] AI功能
-- [ ] 支持多语言
-- [ ] 浏览器扩展
-- [ ] PC客户端
+类 Typora 的使用方式，目录型，简单
 
 ## 快速开始
 
@@ -78,16 +55,3 @@ docker run -d \
 
 > 更多说明请查看帮助文档：[https://znote.xphub.dev/doc/guide](https://znote.xphub.dev/doc/guide)
 
-### Git Tag 自动发布
-
-GitHub Actions 会在 push tag 时自动构建并推送多架构 Docker 镜像：
-
-- `likeflyme/znotetp:<tag>`
-- `likeflyme/znotetp:latest`
-
-需要在 GitHub Actions Secrets 中配置：`DOCKERHUB_USERNAME` 和 `DOCKERHUB_TOKEN`。
-
-## 联系我们
-
-- Blog：[https://blog.xiaoz.org/](https://blog.xiaoz.org/)
-- X：[https://x.com/xiaozblog](https://x.com/xiaozblog)
