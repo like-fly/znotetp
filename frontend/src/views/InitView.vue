@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { NButton, NCard, NInput, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import req from "@/utils/req";
+import { resetInitStatus } from "@/router";
 
 const router = useRouter();
 const message = useMessage();
@@ -38,6 +39,7 @@ const handleInit = async () => {
             return;
         }
         message.success(t(res.data?.msg || "init.success"));
+        resetInitStatus();
         window.setTimeout(() => {
             router.push("/user/login");
         }, 1200);

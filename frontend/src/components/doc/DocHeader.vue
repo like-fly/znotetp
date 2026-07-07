@@ -39,7 +39,7 @@ const emit = defineEmits<{
     </div>
     <!-- 右上角：GitHub 链接（新窗口打开） -->
     <a
-      href="https://github.com/helloxz/znote"
+      href="https://github.com/like-fly/znotetp"
       target="_blank"
       rel="noopener noreferrer"
       aria-label="GitHub"

@@ -16,7 +16,7 @@
  *   - select: 选中分类
  *   - addChild: 新建子分类
  */
-import { computed, onMounted, provide, ref, watch } from "vue";
+import { computed, onMounted, provide, ref, shallowRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useMessage } from "naive-ui";
 import { VueDraggable } from "vue-draggable-plus";
@@ -69,7 +69,8 @@ watch(
  * - 子级分类（二级、三级等）：自由展开/折叠，不受互斥限制
  * - 状态持久化到 sessionStorage，刷新页面或切换笔记本后可恢复
  */
-const expandedIds = ref<Set<number>>(new Set());
+/** shallowRef：整个替换 Set 而非原地修改，避免 Vue 对 Set 的深层 Proxy 在 provide/inject 场景下触发响应式边缘问题 */
+const expandedIds = shallowRef<Set<number>>(new Set());
 
 /** 顶级节点 ID 集合（用于互斥判断） */
 const topLevelIds = computed(() => new Set(props.tree.map((n) => n.id)));
@@ -114,28 +115,39 @@ const saveToSession = () => {
  * 切换节点展开/折叠状态
  * - 顶级分类（level === 0）：互斥模式，展开新节点时自动关闭其他已展开的顶级节点
  * - 子级分类（level > 0）：自由切换，不影响其他节点
+ * - 全程基于 Set 拷贝构建新集合，避免遍历时修改集合导致的不确定行为
  * @param nodeId 节点 ID
  * @param level 节点层级（0 = 顶级）
  */
 const toggleExpand = (nodeId: number, level: number) => {
-    const newSet = new Set(expandedIds.value);
+    const current = expandedIds.value;
+    const topIds = topLevelIds.value;
+    const next = new Set<number>();
+
     if (level === 0) {
-        // 顶级分类互斥逻辑
-        if (newSet.has(nodeId)) {
-            newSet.delete(nodeId); // 已展开 → 折叠
-        } else {
-            // 展开前，移除其他顶级节点的展开状态（自动关闭上一个）
-            for (const id of newSet) {
-                if (topLevelIds.value.has(id)) newSet.delete(id);
+        if (current.has(nodeId)) {
+            // 已展开 → 折叠：移除自身，保留其他所有节点
+            for (const id of current) {
+                if (id !== nodeId) next.add(id);
             }
-            newSet.add(nodeId);
+        } else {
+            // 展开 → 移除所有其他顶级节点（互斥），保留子级节点，添加当前节点
+            for (const id of current) {
+                if (!topIds.has(id)) next.add(id);
+            }
+            next.add(nodeId);
         }
     } else {
         // 子级分类自由切换
-        if (newSet.has(nodeId)) newSet.delete(nodeId);
-        else newSet.add(nodeId);
+        for (const id of current) {
+            if (id !== nodeId) next.add(id);
+        }
+        if (!current.has(nodeId)) {
+            next.add(nodeId);
+        }
     }
-    expandedIds.value = newSet;
+
+    expandedIds.value = next;
     saveToSession();
 };
 

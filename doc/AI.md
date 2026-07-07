@@ -1,8 +1,8 @@
-# ZNote AI 功能使用文档
+# ZNoteTP AI 功能使用文档
 
 ## 概述
 
-ZNote 集成 AI RAG（检索增强生成）功能，通过向量化笔记内容 + AI 对话实现"与你的知识库对话"。
+ZNoteTP 集成 AI RAG（检索增强生成）功能，通过向量化笔记内容 + AI 对话实现"与你的知识库对话"。
 
 **技术架构**：Mastra Agent（对话编排）+ Mastra Memory（会话持久化）+ LibSQLVector（向量检索）+ SiliconFlow（Embedding + Chat）。
 

@@ -204,7 +204,7 @@ onMounted(() => {
           &copy; {{ new Date().getFullYear() }}&nbsp;
           <i18n-t keypath="doc.footer.built_with" tag="span">
             <template #znote>
-              <a href="https://github.com/helloxz/znote" target="_blank" class="text-blue-500 hover:underline">ZNote</a>
+              <a href="https://github.com/like-fly/znotetp" target="_blank" class="text-blue-500 hover:underline">ZNoteTP</a>
             </template>
           </i18n-t>
         </div>

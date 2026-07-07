@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ZNote 产品落地页
+ * ZNoteTP 产品落地页
  *
  * 三大区块：
  *   1. 顶部 Nav：彩色 Logo + 登录/注册/我的笔记/GitHub（登录态感知）
@@ -209,7 +209,7 @@ watchEffect(() => {
 
           <!-- GitHub 图标按钮（全端可见） -->
           <a
-            href="https://github.com/helloxz/znote"
+            href="https://github.com/like-fly/znotetp"
             target="_blank"
             rel="noopener noreferrer"
             :title="t('home.nav.github')"
@@ -615,7 +615,7 @@ watchEffect(() => {
         <p class="text-sm text-slate-500">
           {{ t("home.footer.copyright") }}
           <a
-            href="https://github.com/helloxz/znote"
+            href="https://github.com/like-fly/znotetp"
             target="_blank"
             rel="noopener noreferrer"
             class="text-slate-400 underline-offset-4 transition hover:text-blue-400 hover:underline"

@@ -1,6 +1,6 @@
-# ZNote
+# ZNoteTP
 
-ZNote是一款小而美的纯笔记应用，原生支持 Markdown 所见即所得，一处部署，随处可用。使用Bun + Hono.js + libSQL + Vue3开发。
+ZNoteTP是一款小而美的纯笔记应用，原生支持 Markdown 所见即所得，一处部署，随处可用。使用Bun + Hono.js + libSQL + Vue3开发。
 
 ![CleanShot 2026-06-26 at 14.09.56@2x.png](https://img.rss.ink/2026/06/26/K5PYJaG2.png)
 

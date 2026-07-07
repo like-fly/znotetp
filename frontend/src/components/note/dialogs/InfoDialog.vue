@@ -3,7 +3,7 @@
  * 信息弹窗
  *
  * 功能：
- * 1. 展示ZNote简介
+ * 1. 展示ZNoteTP简介
  * 2. 提供反馈链接和帮助文档链接
  * 3. 展示QQ群和微信群信息
  */
@@ -36,7 +36,7 @@ const handleClose = () => {
     @update:show="handleClose"
   >
     <div class="space-y-5 rounded-2xl bg-white p-5 shadow-xl">
-      <!-- ZNote简介 -->
+      <!-- ZNoteTP简介 -->
       <div>
         <h3 class="text-lg font-semibold text-slate-800 mb-4 text-center">{{ t('note.info.title') }}</h3>
         <p class="text-sm text-slate-600 leading-relaxed">
@@ -50,7 +50,7 @@ const handleClose = () => {
       <!-- 链接区域 -->
       <div class="flex items-center justify-center gap-4 text-sm">
         <a
-          href="https://github.com/helloxz/znote/issues"
+          href="https://github.com/like-fly/znotetp/issues"
           target="_blank"
           rel="noopener noreferrer"
           class="inline-flex items-center gap-1.5 text-blue-600 transition hover:text-blue-800"
@@ -70,7 +70,7 @@ const handleClose = () => {
         </a>
         <span class="text-slate-300">｜</span>
         <a
-          href="https://github.com/helloxz/znote"
+          href="https://github.com/like-fly/znotetp"
           target="_blank"
           rel="noopener noreferrer"
           class="inline-flex items-center gap-1.5 text-blue-600 transition hover:text-blue-800"
