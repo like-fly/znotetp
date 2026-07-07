@@ -55,3 +55,7 @@ docker run -d \
 
 > 更多说明请查看帮助文档：[https://znote.xphub.dev/doc/guide](https://znote.xphub.dev/doc/guide)
 
+
+## 联系方式
+
+Q群：778720689
