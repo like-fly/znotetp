@@ -7,7 +7,7 @@ export const useSiteStore = defineStore("site", {
         siteSubtitle: "",
         appInfo: {
             app_name: "ZNoteTP",
-            version: "0.1.0",
+            version: "-",
             date: "-",
             total_user_count: 0,
         },

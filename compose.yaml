@@ -1,7 +1,7 @@
 services:
   znote:
     container_name: znote
-    image: helloz/znote:0.1.0
+    image: likeflyme/znotetp:latest
     ports:
       - "3888:3888"
     volumes:

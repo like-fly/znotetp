@@ -1,5 +1,8 @@
 FROM oven/bun:1.3.14-slim
 
+ARG APP_VERSION=unknown
+ENV APP_VERSION=${APP_VERSION}
+
 WORKDIR /app
 COPY . ./
 

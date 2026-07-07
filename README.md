@@ -46,7 +46,7 @@ ZNoteTP是一款小而美的纯笔记应用，原生支持 Markdown 所见即所
 services:
   znote:
     container_name: znote
-    image: helloz/znote:latest
+    image: likeflyme/znotetp:latest
     ports:
       - "3888:3888"
     volumes:
@@ -71,12 +71,21 @@ docker run -d \
   -v ./data:/app/data \
   --restart always \
   -e TZ=Asia/Shanghai \
-  helloz/znote:latest
+  likeflyme/znotetp:latest
 ```
 
 访问 `http://ip:3888`，首次使用会引导创建管理员账号。
 
 > 更多说明请查看帮助文档：[https://znote.xphub.dev/doc/guide](https://znote.xphub.dev/doc/guide)
+
+### Git Tag 自动发布
+
+GitHub Actions 会在 push tag 时自动构建并推送多架构 Docker 镜像：
+
+- `likeflyme/znotetp:<tag>`
+- `likeflyme/znotetp:latest`
+
+需要在 GitHub Actions Secrets 中配置：`DOCKERHUB_USERNAME` 和 `DOCKERHUB_TOKEN`。
 
 ## 联系我们
 
