@@ -8,6 +8,7 @@ import { NaiveUiResolver } from "unplugin-vue-components/resolvers";
 import Components from "unplugin-vue-components/vite";
 
 const buildDate = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 10);
+const devApiTarget = process.env.DEV_API_PROXY_TARGET || "http://localhost:3888";
 
 export default defineConfig({
     plugins: [
@@ -38,6 +39,29 @@ export default defineConfig({
     server: {
         host: "0.0.0.0",
         port: 4000,
+        proxy: {
+            // 本地开发时将前端同源请求转发到 Bun 后端，避免把开发地址写入构建产物
+            "/api": {
+                target: devApiTarget,
+                changeOrigin: true,
+            },
+            "/files": {
+                target: devApiTarget,
+                changeOrigin: true,
+            },
+            "/_resources": {
+                target: devApiTarget,
+                changeOrigin: true,
+            },
+            "/assets": {
+                target: devApiTarget,
+                changeOrigin: true,
+            },
+            "/reset_admin_password": {
+                target: devApiTarget,
+                changeOrigin: true,
+            },
+        },
     },
     resolve: {
         alias: {
