@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from "vue";
-import { useI18n } from "vue-i18n";
 import { VueDraggable } from "vue-draggable-plus";
 import ZIcon from "@/components/DynamicIcon.vue";
 import { useNoteStore } from "@/stores/note";
 import type { Note, NotebookNode } from "@/types/note";
 
-const { t } = useI18n();
 const noteStore = useNoteStore();
 
 const props = defineProps<{
@@ -27,14 +25,13 @@ const emit = defineEmits<{
 
 const { expandedIds, toggleExpand: doToggleExpand } = inject<{
     expandedIds: { value: Set<number> };
-    toggleExpand: (nodeId: number, level: number) => void;
+    toggleExpand: (nodeId: number) => void;
 }>("fileTreeExpand", {
     expandedIds: { value: new Set<number>() },
     toggleExpand: () => {},
 });
 
 const isExpanded = computed(() => expandedIds.value.has(props.node.id));
-const hovered = ref(false);
 const directNotes = computed(() => noteStore.notesByCategory[props.node.id] ?? []);
 const localChildren = ref<NotebookNode[]>([]);
 
@@ -52,23 +49,23 @@ const loadNotesIfNeeded = async () => {
 
 const toggleExpand = async (e: Event) => {
     e.stopPropagation();
-    doToggleExpand(props.node.id, props.level);
+    doToggleExpand(props.node.id);
     if (!isExpanded.value) {
         await loadNotesIfNeeded();
     }
 };
 
 const handleSelect = async () => {
+    const wasExpanded = isExpanded.value;
+
+    if (!wasExpanded) {
+        doToggleExpand(props.node.id);
+    } else {
+        doToggleExpand(props.node.id);
+    }
+
     await loadNotesIfNeeded();
     emit("selectCategory", props.node.id);
-};
-
-const handleAddChild = (e: Event) => {
-    e.stopPropagation();
-    if (!isExpanded.value) {
-        doToggleExpand(props.node.id, props.level);
-    }
-    emit("requestDialog", props.node.id, props.node.title);
 };
 
 const onChildDragEnd = async () => {
@@ -84,13 +81,10 @@ const onChildDragEnd = async () => {
   <div class="select-none">
     <div
       data-file-tree-item="true"
-      class="group flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-[13px] leading-5 transition"
-      :class="activeCategoryId === node.id ? 'bg-slate-200 text-slate-950' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'"
+      class="group flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-[13px] leading-5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
       :style="{ paddingLeft: `${10 + level * 16}px` }"
       @click.stop="handleSelect"
       @contextmenu.prevent.stop="(e: MouseEvent) => emit('contextmenu', node, e)"
-      @mouseenter="hovered = true"
-      @mouseleave="hovered = false"
     >
       <div
         class="drag-handle shrink-0 cursor-grab text-slate-400 transition"
@@ -107,15 +101,6 @@ const onChildDragEnd = async () => {
       </button>
       <ZIcon :name="isExpanded ? 'ri:folder-open-line' : 'ri:folder-line'" :size="15" color="currentColor" class="shrink-0" />
       <span class="min-w-0 flex-1 truncate">{{ node.title }}</span>
-      <button
-        v-show="hovered && level < 2"
-        class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-slate-200 hover:text-slate-900"
-        type="button"
-        :title="t('note.category.add_child')"
-        @click="handleAddChild"
-      >
-        <ZIcon name="ri:add-line" :size="14" color="currentColor" />
-      </button>
     </div>
 
     <div v-if="isExpanded">

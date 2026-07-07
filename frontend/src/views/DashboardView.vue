@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref, shallowRef, watch } from "vue";
+import { computed, h, onMounted, ref, shallowRef, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NDropdown } from "naive-ui";
 import { useI18n } from "vue-i18n";
@@ -39,7 +39,7 @@ const componentMap: Record<string, any> = {
 // 深拷贝菜单配置，使 expanded 属性可响应
 const menus = ref(JSON.parse(JSON.stringify(menuConfig)));
 
-const appName = computed(() => siteStore.appInfo.app_name || "ZNote");
+const appName = computed(() => siteStore.siteTitle || siteStore.appInfo.app_name || "ZNoteTP");
 
 const userMenuOptions = computed(() => [
     { label: t("dashboard.user_menu.home"), key: "home", icon: () => h(ZIcon, { name: "ri:home-line", size: 16 }) },
@@ -88,6 +88,10 @@ onMounted(async () => {
 
 watch(() => route.params.name, (name) => {
     loadRouteComponent(name);
+});
+
+watchEffect(() => {
+    document.title = appName.value;
 });
 </script>
 

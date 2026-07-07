@@ -6,7 +6,7 @@
  *   Col-1锛氱敤鎴蜂俊鎭?+ 绗旇鏈笅鎷?+ "鎴戠殑绗旇"鏍囬鏍?+ 鍒嗙被鏍? *   Col-2锛氭悳绱?+ 鏂板缓绗旇 + 绗旇鍒楄〃
  *   Col-3锛坒lex-1锛夛細绗旇鏍囬 + 鍏冧俊鎭?+ Markdown 缂栬緫鍣? *
  * 鏍稿績鐘舵€佺敱 stores/note.ts 缁熶竴绠＄悊锛屾湰缁勪欢鍙礋璐ｇ紪鎺掑拰浜嬩欢杞彂銆? */
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NButton, NDropdown, NPopconfirm, NSpin, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
@@ -50,7 +50,8 @@ type SidebarTab = "files" | "outline";
 type NoteOutlineItem = { level: number; text: string; index: number };
 
 const isAdmin = computed(() => userStore.userInfo.role === "admin");
-const appName = computed(() => siteStore.appInfo.app_name || "ZNote");
+const appName = computed(() => siteStore.siteTitle || siteStore.appInfo.app_name || "ZNoteTP");
+const appSubtitle = computed(() => siteStore.siteSubtitle || "Markdown Workspace");
 
 const fileMenuOptions = computed(() => {
     const options: Array<Record<string, unknown>> = [
@@ -113,6 +114,31 @@ const fileAreaMenuOptions = computed(() => [
         icon: () => h(ZIcon, { name: "ri:folder-add-line", size: 16 }),
     },
 ]);
+const editorMenuOptions = computed(() => [
+    {
+        label: "段落",
+        key: "paragraph",
+        children: [
+            { label: "一级标题", key: "heading_1" },
+            { label: "二级标题", key: "heading_2" },
+            { label: "三级标题", key: "heading_3" },
+            { label: "四级标题", key: "heading_4" },
+            { label: "五级标题", key: "heading_5" },
+            { label: "六级标题", key: "heading_6" },
+        ],
+    },
+    {
+        label: "插入",
+        key: "insert",
+        children: [
+            { label: "图像", key: "insert_image" },
+            { label: "表格", key: "insert_table" },
+        ],
+    },
+]);
+const editorMenuProps = () => ({
+    style: "min-width: 188px;",
+});
 
 // ==================== 绉诲姩绔娴?====================
 
@@ -174,7 +200,6 @@ const showCreateCategory = ref(false);
 const showChangePassword = ref(false);
 /** 妗岄潰绔乏渚ф爣绛?*/
 const activeSidebarTab = ref<SidebarTab>("files");
-const highlightedCategoryId = ref<number | null>(noteStore.activeCategoryId);
 /** 妗岄潰鎼滅储妗嗘樉闅?*/
 const showSearchBox = ref(false);
 /** 妗岄潰鎼滅储鍏抽敭璇?*/
@@ -205,6 +230,12 @@ const fileAreaMenuShow = ref(false);
 const fileAreaMenuX = ref(0);
 /** 鏂囦欢鍖虹┖鐧藉鍙抽敭鑿滃崟浣嶇疆 Y */
 const fileAreaMenuY = ref(0);
+/** 编辑器右键菜单显示状态 */
+const editorMenuShow = ref(false);
+/** 编辑器右键菜单位置 X */
+const editorMenuX = ref(0);
+/** 编辑器右键菜单位置 Y */
+const editorMenuY = ref(0);
 
 /** 閲嶅懡鍚?Dialog 鏄鹃殣 */
 const showRenameDialog = ref(false);
@@ -506,12 +537,6 @@ const currentCategoryTree = computed<NotebookNode[]>(() => {
     return noteStore.activeNotebook?.children ?? [];
 });
 
-/** 褰撳墠婵€娲荤殑绗旇鎵€鍦ㄥ垎绫诲悕锛堢敤浜庡厓淇℃伅鏉★級 */
-const activeCategoryName = computed(() => {
-    const cat = noteStore.activeCategory;
-    return cat?.title ?? "-";
-});
-
 /** 褰撳墠绗旇鐨勫ぇ绾叉爣棰樺垪琛?*/
 const outlineHeadings = computed<NoteOutlineItem[]>(() => {
     const lines = draftContent.value.split(/\r?\n/);
@@ -567,6 +592,7 @@ onMounted(async () => {
     const ok = await userStore.checkLogin();
     if (!ok) return;
 
+    await siteStore.fetchSiteSetting();
     await userStore.getUserInfo();
     await noteStore.loadNotebookTree();
 
@@ -579,6 +605,11 @@ onMounted(async () => {
     window.addEventListener("keydown", handleSaveShortcut);
     // 娉ㄥ唽椤甸潰鍏抽棴/鍒锋柊鏃剁殑鍏滃簳淇濆瓨
     window.addEventListener("beforeunload", handleBeforeUnload);
+});
+
+watchEffect(() => {
+    const noteTitle = noteStore.activeNote?.title?.trim() || "";
+    document.title = noteTitle ? `${noteTitle} - ${appName.value}` : appName.value;
 });
 
 /** 缁勪欢鍗歌浇鏃舵竻鐞嗛敭鐩樼洃鍚€佸厹搴曚繚瀛樸€佽嚜鍔ㄤ繚瀛樺畾鏃跺櫒 */
@@ -714,13 +745,8 @@ const handleConfirmCreateNotebook = async (title: string) => {
 
 /** 閫変腑鍒嗙被锛堢Щ鍔ㄧ鍚屾鍏抽棴鎶藉眽锛?*/
 const handleSelectCategory = async (id: number) => {
-    highlightedCategoryId.value = id;
     await noteStore.selectCategory(id);
     if (isMobile.value) drawerOpen.value = false;
-};
-
-const handleClearFolderHighlight = () => {
-    highlightedCategoryId.value = null;
 };
 
 /** 鎵撳紑"鏂板缓瀛愬垎绫?Dialog锛堢敤 Dialog 鏂瑰紡锛岀敱"鎴戠殑绗旇"鏍囬鏍忚Е鍙戯級 */
@@ -742,7 +768,6 @@ const handleCategoryContextMenu = (node: NotebookNode, e: MouseEvent) => {
 };
 
 const handleFileAreaContextMenu = (e: MouseEvent) => {
-    highlightedCategoryId.value = null;
     categoryMenuShow.value = false;
     fileAreaMenuX.value = e.clientX;
     fileAreaMenuY.value = e.clientY;
@@ -762,6 +787,8 @@ const handleFileAreaMenuSelect = async (key: string) => {
 const handleCategoryMenuSelect = (action: CategoryContextAction, node: NotebookNode) => {
     if (action === "create_note") {
         void handleCreateNoteInCategory(node.id);
+    } else if (action === "create_folder") {
+        openCreateCategoryDialog(node.id, node.title);
     } else if (action === "rename") {
         renameValue.value = node.title;
         renameTarget.value = node;
@@ -860,7 +887,6 @@ const handleCreateNoteInCategory = async (categoryId: number) => {
         content: "",
     });
     if (result) {
-        highlightedCategoryId.value = null;
         await noteStore.selectNote(result.id);
         void router.push(`/app/note/${result.id}`);
     }
@@ -871,7 +897,7 @@ const handleCreateNoteInCategory = async (categoryId: number) => {
  * 直接创建一个未命名笔记，自动选中，然后聚焦标题让用户改名
  */
 const handleOpenCreateNote = async (targetId?: number | null) => {
-    const targetNotebookId = targetId ?? highlightedCategoryId.value ?? noteStore.activeNotebookId;
+    const targetNotebookId = targetId ?? noteStore.activeCategoryId ?? noteStore.activeNotebookId;
     if (targetNotebookId === null) {
         message.warning(t("note.note.create.placeholder"));
         return;
@@ -884,7 +910,6 @@ const handleSelectNote = async (id: number) => {
         await handleSaveNote();
     }
     editorTouched.value = false;
-    highlightedCategoryId.value = null;
     await noteStore.selectNote(id);
     router.push(`/app/note/${id}`);
 };
@@ -928,7 +953,12 @@ watch(
 );
 
 /** NoteEditor 缁勪欢寮曠敤锛堢敤浜庤幏鍙栨渶鏂扮紪杈戝櫒鍐呭锛?*/
-const editorRef = ref<(InstanceType<typeof NoteEditor> & { scrollToHeading?: (index: number) => void }) | null>(null);
+const editorRef = ref<(InstanceType<typeof NoteEditor> & {
+    scrollToHeading?: (index: number) => void;
+    applyHeading?: (level: 1 | 2 | 3 | 4 | 5 | 6) => void;
+    insertMarkdownAtCursor?: (markdown: string) => void;
+    insertMarkdownBelowCurrentLine?: (markdown: string) => void;
+}) | null>(null);
 
 const handleOutlineSelect = (index: number) => {
     editorRef.value?.scrollToHeading?.(index);
@@ -938,6 +968,49 @@ const handleOutlineSelect = (index: number) => {
 const handleEditorChange = (value: string) => {
     editorTouched.value = true;
     draftContent.value = value;
+};
+
+/**
+ * 打开编辑器右键菜单。
+ */
+const handleEditorContextMenu = (event: MouseEvent) => {
+    categoryMenuShow.value = false;
+    fileAreaMenuShow.value = false;
+    editorMenuX.value = event.clientX;
+    editorMenuY.value = event.clientY;
+    editorMenuShow.value = true;
+};
+
+/**
+ * 处理编辑器右键菜单动作。
+ */
+/**
+ * 从剪贴板中读取图片 URL，仅读取 http/https 地址。
+ */
+const readClipboardImageUrl = async (): Promise<string> => {
+    if (!navigator.clipboard?.readText) return "";
+    try {
+        const text = (await navigator.clipboard.readText()).trim();
+        return /^https?:\/\/\S+$/i.test(text) ? text : "";
+    } catch {
+        return "";
+    }
+};
+
+const handleEditorMenuSelect = async (key: string) => {
+    if (!editorRef.value) return;
+
+    if (/^heading_[1-6]$/.test(key)) {
+        const level = Number(key.replace("heading_", "")) as 1 | 2 | 3 | 4 | 5 | 6;
+        editorRef.value.applyHeading?.(level);
+    } else if (key === "insert_image") {
+        const imageUrl = await readClipboardImageUrl();
+        editorRef.value.insertMarkdownAtCursor?.(`![img](${imageUrl})`);
+    } else if (key === "insert_table") {
+        editorRef.value.insertMarkdownBelowCurrentLine?.("| 列1 | 列2 |\n| --- | --- |\n| 内容1 | 内容2 |");
+    }
+
+    editorMenuShow.value = false;
 };
 
 /**
@@ -998,20 +1071,15 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
         :style="{ width: col1Width + 'px' }"
         class="flex shrink-0 items-center gap-3 border-r border-slate-200 px-4"
       >
-        <img src="/static/images/znote.svg" alt="ZNote" class="h-8 w-8 shrink-0" />
+        <img src="/static/images/znote.svg" :alt="appName" class="h-8 w-8 shrink-0" />
         <div class="min-w-0">
           <div class="truncate text-sm font-semibold tracking-[0.18em] text-slate-900">{{ appName }}</div>
-          <div class="truncate text-[11px] text-slate-400">Markdown Workspace</div>
+          <div class="truncate text-[11px] text-slate-400">{{ appSubtitle }}</div>
         </div>
       </div>
 
       <div class="flex min-w-0 flex-1 items-center justify-between gap-4 border-r border-slate-200 px-5">
         <div class="flex min-w-0 items-center gap-4 text-xs">
-          <div class="flex min-w-0 items-center gap-1.5">
-            <ZIcon name="ri:folder-line" :size="14" color="#94a3b8" />
-            <span class="text-slate-400">{{ t("note.meta.notebook") }}</span>
-            <span class="truncate font-medium text-slate-700">{{ activeCategoryName }}</span>
-          </div>
           <div v-if="noteStore.activeNote" class="flex items-center gap-1.5 text-slate-500">
             <ZIcon name="ri:add-circle-line" :size="13" color="#94a3b8" />
             <span class="text-slate-400">{{ t("note.meta.created_at") }}</span>
@@ -1133,7 +1201,7 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
         <FileTree
           v-if="activeSidebarTab === 'files'"
           :tree="currentCategoryTree"
-          :active-category-id="highlightedCategoryId"
+          :active-category-id="null"
           :active-note-id="noteStore.activeNoteId"
           :is-mobile="isMobile"
           @select-category="handleSelectCategory"
@@ -1141,7 +1209,6 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
           @request-dialog="(pid: number, pname: string) => openCreateCategoryDialog(pid, pname)"
           @contextmenu="handleCategoryContextMenu"
           @blank-contextmenu="handleFileAreaContextMenu"
-          @blank-click="handleClearFolderHighlight"
         />
         <NoteOutline
           v-else
@@ -1174,7 +1241,7 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
             </NAlert>
           </div>
 
-          <div class="min-h-0 flex-1 bg-white px-8 pb-6 pt-4">
+          <div class="min-h-0 flex-1 bg-white px-8 pb-6 pt-4" @contextmenu.prevent="handleEditorContextMenu">
             <NoteEditor
               ref="editorRef"
               :model-value="draftContent"
@@ -1219,6 +1286,18 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
       :options="fileAreaMenuOptions"
       @select="handleFileAreaMenuSelect"
       @clickoutside="fileAreaMenuShow = false"
+    />
+
+    <NDropdown
+      placement="bottom-start"
+      trigger="manual"
+      :show="editorMenuShow"
+      :x="editorMenuX"
+      :y="editorMenuY"
+      :options="editorMenuOptions"
+      :menu-props="editorMenuProps"
+      @select="handleEditorMenuSelect"
+      @clickoutside="editorMenuShow = false"
     />
 
     <NModal
@@ -1332,7 +1411,7 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
         <div class="absolute inset-0 bg-black/40 transition-opacity duration-300" :class="drawerOpen ? 'opacity-100' : 'opacity-0'" @click="drawerOpen = false" />
         <div class="absolute left-0 top-0 bottom-0 flex w-72 flex-col bg-slate-800 text-slate-200 shadow-2xl transition-transform duration-300" :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'">
           <div class="flex items-center justify-between border-b border-slate-700/60 px-3 py-3">
-            <span class="text-sm font-medium">ZNote</span>
+            <span class="text-sm font-medium">{{ appName }}</span>
             <button
               class="rounded p-1 text-slate-400 transition hover:bg-slate-700/50 hover:text-slate-200"
               @click="drawerOpen = false"
@@ -1468,7 +1547,6 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
         <div class="shrink-0 bg-white px-4 py-3">
           <NoteMetaBar
             :note="noteStore.activeNote"
-            :category-name="activeCategoryName"
             :saving="isSaving"
             :viewing-version="viewingVersion"
             :auto-save-status="editorTouched ? autoSaveStatus : undefined"
@@ -1487,7 +1565,7 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
             {{ t("note.version.viewing_warning", { version: viewingVersionNo }) }}
           </NAlert>
         </div>
-        <div class="flex-1 bg-white px-4 pb-4 pt-0" style="min-height:0">
+        <div class="flex-1 bg-white px-4 pb-4 pt-0" style="min-height:0" @contextmenu.prevent="handleEditorContextMenu">
           <NoteEditor
             ref="editorRef"
             :model-value="draftContent"
@@ -1520,6 +1598,18 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
       :y="categoryMenuY"
       :node="categoryMenuNode"
       @select="handleCategoryMenuSelect"
+    />
+
+    <NDropdown
+      placement="bottom-start"
+      trigger="manual"
+      :show="editorMenuShow"
+      :x="editorMenuX"
+      :y="editorMenuY"
+      :options="editorMenuOptions"
+      :menu-props="editorMenuProps"
+      @select="handleEditorMenuSelect"
+      @clickoutside="editorMenuShow = false"
     />
 
     <NModal

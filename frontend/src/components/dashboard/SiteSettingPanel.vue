@@ -66,9 +66,11 @@ import { onMounted, reactive, ref } from "vue";
 import type { FormInst, FormRules } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import req from "@/utils/req";
+import { useSiteStore } from "@/stores/site";
 
 const { t } = useI18n();
 const message = useMessage();
+const siteStore = useSiteStore();
 const formRef = ref<FormInst | null>(null);
 const submitting = ref(false);
 const loading = ref(false);
@@ -130,6 +132,12 @@ const handleSubmit = async () => {
         });
         const result = res.data;
         if (result?.code === 200) {
+            // 保存成功后立即同步全局标题，避免当前后台和其它页面继续显示旧值。
+            siteStore.setSiteSetting({
+                title: form.title.trim(),
+                sub_title: form.sub_title.trim(),
+            });
+            document.title = siteStore.siteTitle;
             message.success(t("site_setting.save.success"));
         } else {
             message.error(result?.msg || t("site_setting.save.failed"));

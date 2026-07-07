@@ -8,11 +8,12 @@
  *   3. Features：12 个特性卡片（玻璃拟态 + hover 抬升），lg 下 4 列 4-4-4
  *   4. Footer：版权 + 开源链接 + tagline
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { NDrawer, NDrawerContent, NQrCode } from "naive-ui";
 import { useSystemStore } from "@/stores/system";
+import { useSiteStore } from "@/stores/site";
 import { useUserStore } from "@/stores/user";
 import req from "@/utils/req";
 import ZIcon from "@/components/DynamicIcon.vue";
@@ -20,7 +21,9 @@ import ZIcon from "@/components/DynamicIcon.vue";
 const { t, locale } = useI18n();
 const router = useRouter();
 const systemStore = useSystemStore();
+const siteStore = useSiteStore();
 const userStore = useUserStore();
+const appName = computed(() => siteStore.siteTitle || systemStore.status.app_name || "ZNoteTP");
 
 // ==================== 移动端检测 ====================
 
@@ -140,6 +143,7 @@ const handleLogout = async () => {
 
 onMounted(() => {
     void systemStore.fetchStatus();
+    void siteStore.fetchSiteSetting();
     const token = localStorage.getItem("token");
     if (token) {
         req.get("/api/user/check_login").then((res) => {
@@ -150,6 +154,10 @@ onMounted(() => {
             }
         });
     }
+});
+
+watchEffect(() => {
+    document.title = appName.value;
 });
 </script>
 
@@ -163,7 +171,7 @@ onMounted(() => {
         <!-- 左侧 Logo（纯彩色图标，无背景框） -->
         <router-link to="/" class="flex items-center gap-2 transition hover:opacity-80">
           <ZIcon name="ri:booklet-line" :size="26" color="#60a5fa" class="text-blue-400" />
-          <span class="text-lg font-semibold tracking-tight">ZNote</span>
+          <span class="text-lg font-semibold tracking-tight">{{ appName }}</span>
         </router-link>
 
         <!-- 右侧操作区 -->
@@ -236,7 +244,7 @@ onMounted(() => {
           <div class="mb-6 flex items-center justify-between">
             <div class="flex items-center gap-2">
               <ZIcon name="ri:booklet-line" :size="24" color="#60a5fa" class="text-blue-400" />
-              <span class="text-lg font-semibold tracking-tight">ZNote</span>
+              <span class="text-lg font-semibold tracking-tight">{{ appName }}</span>
             </div>
             <button
               class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800/70 hover:text-white"

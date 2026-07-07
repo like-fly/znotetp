@@ -47,7 +47,28 @@ const scrollToHeading = (index: number): void => {
     editorRef.value?.scrollToHeading(index);
 };
 
-defineExpose({ getContent, scrollToHeading });
+/**
+ * 将当前光标所在行设置为指定级别标题。
+ */
+const applyHeading = (level: 1 | 2 | 3 | 4 | 5 | 6): void => {
+    editorRef.value?.applyHeading(level);
+};
+
+/**
+ * 在光标位置插入 Markdown 片段。
+ */
+const insertMarkdownAtCursor = (markdown: string): void => {
+    editorRef.value?.insertMarkdownAtCursor(markdown);
+};
+
+/**
+ * 在当前行下一行插入 Markdown 块。
+ */
+const insertMarkdownBelowCurrentLine = (markdown: string): void => {
+    editorRef.value?.insertMarkdownBelowCurrentLine(markdown);
+};
+
+defineExpose({ getContent, scrollToHeading, applyHeading, insertMarkdownAtCursor, insertMarkdownBelowCurrentLine });
 </script>
 
 <template>

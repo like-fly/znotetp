@@ -451,9 +451,8 @@ export const useNoteStore = defineStore("note", {
             if (this.trashMode) this.exitTrashMode();
             if (this.sharesMode) this.exitSharesMode();
             this.activeCategoryId = id;
-            this.activeNoteId = null;
             writeSessionId(SESSION_KEYS.category, id);
-            writeSessionId(SESSION_KEYS.note, null);
+            writeSessionId(SESSION_KEYS.note, this.activeNoteId);
             if (id !== null && !this.loadedCategoryIds.has(id)) {
                 await this.loadCategoryNotes(id);
             }

@@ -1,23 +1,17 @@
 <script setup lang="ts">
-/**
- * 分类右键菜单组件
- *
- * 通过 NDropdown 的 manual 触发模式 + x/y 坐标定位，
- * 在鼠标右键位置弹出菜单。选项：
- *   - 重命名：弹出 Dialog 修改分类名称
- *   - 移动分类：弹出 MoveDialog 选择目标父节点
- *   - 删除分类：暂未实现
- *
- * 由父组件控制 show / x / y / node，本组件只负责渲染和事件转发。
- */
 import { h } from "vue";
 import { NDropdown } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import ZIcon from "@/components/DynamicIcon.vue";
 import type { NotebookNode } from "@/types/note";
 
-/** 右键菜单可触发的操作 */
-export type CategoryContextAction = "create_note" | "rename" | "delete" | "move" | "export";
+export type CategoryContextAction =
+    | "create_note"
+    | "create_folder"
+    | "rename"
+    | "delete"
+    | "move"
+    | "export";
 
 const props = defineProps<{
     show: boolean;
@@ -44,7 +38,12 @@ const menuOptions = [
         key: "create_note",
         icon: () => h(ZIcon, { name: "ri:sticky-note-add-line", size: 16 }),
     },
-    { type: "divider", key: "d-create-note" },
+    {
+        label: t("note.category.add_child"),
+        key: "create_folder",
+        icon: () => h(ZIcon, { name: "ri:folder-add-line", size: 16 }),
+    },
+    { type: "divider", key: "d-create" },
     {
         label: t("note.category.context.rename"),
         key: "rename",
@@ -68,7 +67,17 @@ const menuOptions = [
 ];
 
 const handleSelect = (key: string) => {
-    if (props.node && (key === "create_note" || key === "rename" || key === "delete" || key === "move" || key === "export")) {
+    if (
+        props.node &&
+        (
+            key === "create_note" ||
+            key === "create_folder" ||
+            key === "rename" ||
+            key === "delete" ||
+            key === "move" ||
+            key === "export"
+        )
+    ) {
         emit("select", key as CategoryContextAction, props.node);
     }
     emit("update:show", false);

@@ -49,7 +49,7 @@ export const randomString = (length = 16): string => {
 };
 
 export const getAppName = (): string => {
-    return Bun.env.ZNOTE_APP_NAME?.trim() || "ZNote";
+    return Bun.env.ZNOTE_APP_NAME?.trim() || "ZNoteTP";
 };
 
 export const getAllowRegister = (): boolean => {

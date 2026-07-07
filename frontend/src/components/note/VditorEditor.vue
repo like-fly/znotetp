@@ -51,7 +51,80 @@ const scrollToHeading = (index: number): void => {
     target?.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
-defineExpose({ getContent, scrollToHeading });
+/**
+ * 将当前光标所在行转换为指定级别标题。
+ * 复用 Vditor 内建快捷键逻辑，避免手动解析 IR DOM。
+ */
+const applyHeading = (level: 1 | 2 | 3 | 4 | 5 | 6): void => {
+    if (!vditor) return;
+    vditor.focus();
+    const currentMode = vditor.getCurrentMode() as "sv" | "wysiwyg" | "ir";
+    const editorElement = (vditor as unknown as Record<"sv" | "wysiwyg" | "ir", { element: HTMLElement }>)[currentMode].element;
+    const event = new KeyboardEvent("keydown", {
+        key: String(level),
+        code: `Digit${level}`,
+        ctrlKey: true,
+        altKey: true,
+        bubbles: true,
+        cancelable: true,
+    });
+    editorElement.dispatchEvent(event);
+};
+
+/**
+ * 在当前光标位置插入 Markdown 片段。
+ */
+const insertMarkdownAtCursor = (markdown: string): void => {
+    if (!vditor) return;
+    vditor.focus();
+    vditor.insertMD(markdown);
+};
+
+/**
+ * 查找当前光标所在的块级节点，IR 模式下每一行都会挂 data-block="0"。
+ */
+const getCurrentBlockElement = (): HTMLElement | null => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+
+    let node: Node | null = selection.getRangeAt(0).startContainer;
+    while (node) {
+        if (node instanceof HTMLElement && node.getAttribute("data-block") === "0") {
+            return node;
+        }
+        node = node.parentNode;
+    }
+    return null;
+};
+
+/**
+ * 将光标移动到当前块级节点之后，便于在“当前行下一行”插入内容。
+ */
+const moveCursorAfterCurrentBlock = (): void => {
+    const blockElement = getCurrentBlockElement();
+    if (!blockElement || !blockElement.parentNode) return;
+
+    const range = document.createRange();
+    range.setStartAfter(blockElement);
+    range.collapse(true);
+
+    const selection = window.getSelection();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(range);
+};
+
+/**
+ * 在当前光标所在行的下一行插入 Markdown 块。
+ */
+const insertMarkdownBelowCurrentLine = (markdown: string): void => {
+    if (!vditor) return;
+    vditor.focus();
+    moveCursorAfterCurrentBlock();
+    vditor.insertMD(markdown);
+};
+
+defineExpose({ getContent, scrollToHeading, applyHeading, insertMarkdownAtCursor, insertMarkdownBelowCurrentLine });
 
 /**
  * onMounted 阶段创建 Vditor 实例

@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { getAppName } from "@/utils/helper";
 
 // ==================== 用户设置 ====================
 
@@ -78,7 +79,7 @@ export const setUserSetting = async (c: Context) => {
 const DEFAULT_SETTINGS: Record<string, Record<string, any>> = {
     // 站点设置
     site_setting: {
-        title: "ZNote",
+        title: "ZNoteTP",
         sub_title: "简洁、易用的笔记系统",
         keywords: "",
         description: "",
@@ -304,4 +305,14 @@ export const getSettingValue = async (key: string): Promise<Record<string, any> 
 
     // 合并默认值和已存储的值（已存储的值覆盖默认值）
     return { ...defaults, ...storedValue };
+};
+
+/**
+ * 获取当前站点标题。
+ * 优先读取站点设置，未配置时回退到环境变量应用名。
+ */
+export const getSiteTitle = async (): Promise<string> => {
+    const siteSetting = await getSettingValue("site_setting");
+    const title = typeof siteSetting?.title === "string" ? siteSetting.title.trim() : "";
+    return title || getAppName();
 };
