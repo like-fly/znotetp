@@ -9,4 +9,5 @@ frontend/.env.local
 .env
 frontent/.env.development
 znote-mobile
-public/
+/public/
+/dist/

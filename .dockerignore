@@ -1,12 +1,12 @@
 .git/
 data/
-backend/
-frontend/
 node_modules/
+frontend/node_modules/
+frontend/dist/
+/public/
+/dist/
 .env
 .gitignore
 .env.example
-build_frontend.sh
 *.md
-tsconfig.json
 compose.yaml

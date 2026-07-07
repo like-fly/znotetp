@@ -16,7 +16,7 @@
  * 完成移入回收站 / 置顶笔记（智能切换），列表自动刷新。
  */
 import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { NButton, NInput, NSpin, useMessage } from "naive-ui";
+import { NButton, NInput, NModal, NSpin, useMessage } from "naive-ui";
 import { VueDraggable } from "vue-draggable-plus";
 import { useI18n } from "vue-i18n";
 import ZIcon from "@/components/DynamicIcon.vue";
@@ -176,6 +176,9 @@ const shareDialogShow = ref(false);
 const shareNoteId = ref(0);
 /** 被分享的笔记标题 */
 const shareNoteTitle = ref("");
+const showRenameDialog = ref(false);
+const renameValue = ref("");
+const renameNote = ref<Note | null>(null);
 
 /** 当前笔记本下的分类树（用于移动对话框） */
 const currentCategoryTree = computed(() => {
@@ -196,6 +199,12 @@ const handleContextMenu = (note: Note, e: MouseEvent) => {
  * - pin：智能切换 is_pinned 0/1，更新后本地缓存自动同步
  */
 const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
+    if (action === "rename") {
+        renameNote.value = note;
+        renameValue.value = note.title;
+        showRenameDialog.value = true;
+        return;
+    }
     if (action === "open_new_window") {
         window.open(`/app/note/${note.id}`, "_blank");
         return;
@@ -235,6 +244,15 @@ const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
     const next = note.is_pinned === 1 ? 0 : 1;
     await noteStore.updateNote(note.id, { is_pinned: next });
     message.success(next === 1 ? t("note.context.pin.success") : t("note.context.unpin.success"));
+};
+
+const handleConfirmRename = async () => {
+    if (!renameNote.value || !renameValue.value.trim()) return;
+    const result = await noteStore.updateNote(renameNote.value.id, { title: renameValue.value.trim() });
+    if (result) {
+        message.success(t("note.category.rename.success"));
+    }
+    showRenameDialog.value = false;
 };
 
 /** 确认移动笔记 */
@@ -394,5 +412,22 @@ const handleMoveCancel = () => {
       :note-id="shareNoteId"
       :note-title="shareNoteTitle"
     />
+    <NModal
+      v-model:show="showRenameDialog"
+      preset="dialog"
+      :title="t('note.category.context.rename')"
+      :positive-text="t('note.dialog.confirm')"
+      :negative-text="t('note.dialog.cancel')"
+      :mask-closable="false"
+      @positive-click="handleConfirmRename"
+      @negative-click="showRenameDialog = false"
+    >
+      <NInput
+        v-model:value="renameValue"
+        :placeholder="t('note.category.rename.placeholder')"
+        autofocus
+        @keydown.enter="handleConfirmRename"
+      />
+    </NModal>
   </div>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, provide, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useMessage } from "naive-ui";
+import { NInput, NModal, useMessage } from "naive-ui";
 import ZIcon from "@/components/DynamicIcon.vue";
 import FileTreeNode from "@/components/note/FileTreeNode.vue";
 import NoteContextMenu, { type NoteContextAction } from "@/components/note/NoteContextMenu.vue";
@@ -67,6 +67,9 @@ const moveNote = ref<Note | null>(null);
 const shareDialogShow = ref(false);
 const shareNoteId = ref(0);
 const shareNoteTitle = ref("");
+const showRenameDialog = ref(false);
+const renameValue = ref("");
+const renameNote = ref<Note | null>(null);
 
 const currentCategoryTree = computed(() => noteStore.activeNotebook?.children ?? []);
 const rootNotes = computed(() => {
@@ -91,6 +94,12 @@ const handleNoteContextMenu = (note: Note, event: MouseEvent) => {
 };
 
 const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
+    if (action === "rename") {
+        renameNote.value = note;
+        renameValue.value = note.title;
+        showRenameDialog.value = true;
+        return;
+    }
     if (action === "open_new_window") {
         window.open(`/app/note/${note.id}`, "_blank");
         return;
@@ -129,6 +138,15 @@ const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
     const next = note.is_pinned === 1 ? 0 : 1;
     await noteStore.updateNote(note.id, { is_pinned: next });
     message.success(next === 1 ? t("note.context.pin.success") : t("note.context.unpin.success"));
+};
+
+const handleConfirmRename = async () => {
+    if (!renameNote.value || !renameValue.value.trim()) return;
+    const result = await noteStore.updateNote(renameNote.value.id, { title: renameValue.value.trim() });
+    if (result) {
+        message.success(t("note.category.rename.success"));
+    }
+    showRenameDialog.value = false;
 };
 
 const handleMoveConfirm = async (targetId: number) => {
@@ -230,5 +248,23 @@ const handleBlankClick = (event: MouseEvent) => {
       :note-id="shareNoteId"
       :note-title="shareNoteTitle"
     />
+
+    <NModal
+      v-model:show="showRenameDialog"
+      preset="dialog"
+      :title="t('note.category.context.rename')"
+      :positive-text="t('note.dialog.confirm')"
+      :negative-text="t('note.dialog.cancel')"
+      :mask-closable="false"
+      @positive-click="handleConfirmRename"
+      @negative-click="showRenameDialog = false"
+    >
+      <NInput
+        v-model:value="renameValue"
+        :placeholder="t('note.category.rename.placeholder')"
+        autofocus
+        @keydown.enter="handleConfirmRename"
+      />
+    </NModal>
   </div>
 </template>

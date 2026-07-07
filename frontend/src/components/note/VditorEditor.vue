@@ -60,8 +60,6 @@ defineExpose({ getContent, scrollToHeading });
 onMounted(() => {
     if (!editorRef.value) return;
 
-    const isMobile = window.innerWidth < 768;
-
     vditor = new Vditor(editorRef.value, {
         height: "100%",
         mode: "ir",
@@ -72,8 +70,8 @@ onMounted(() => {
         cdn: "/static/vditor",
         placeholder: props.placeholder || "开始编写...",
         value: props.modelValue,
-        toolbarConfig: { pin: true },
-        ...(isMobile ? { toolbar: ["headings", "bold", "list", "check", "upload"] } : {}),
+        toolbar: [],
+        toolbarConfig: { pin: false, hide: true },
         cache: { enable: false },
         counter: { enable: true, type: "text" },
         outline: { enable: false, position: "left" },

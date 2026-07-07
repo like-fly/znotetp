@@ -30,6 +30,7 @@ import ChangePasswordDialog from "@/components/note/dialogs/ChangePasswordDialog
 import CategoryContextMenu from "@/components/note/CategoryContextMenu.vue";
 import { useNoteStore } from "@/stores/note";
 import { useUserStore } from "@/stores/user";
+import { useSiteStore } from "@/stores/site";
 import { useNoteSync } from "@/composables/useNoteSync";
 import { fetchNoteVersion } from "@/api/note";
 import { NModal, NInput, NAlert } from "naive-ui";
@@ -43,11 +44,13 @@ const router = useRouter();
 const message = useMessage();
 const noteStore = useNoteStore();
 const userStore = useUserStore();
+const siteStore = useSiteStore();
 
 type SidebarTab = "files" | "outline";
 type NoteOutlineItem = { level: number; text: string; index: number };
 
 const isAdmin = computed(() => userStore.userInfo.role === "admin");
+const appName = computed(() => siteStore.appInfo.app_name || "ZNote");
 
 const fileMenuOptions = computed(() => {
     const options: Array<Record<string, unknown>> = [
@@ -347,9 +350,6 @@ const draftTitle = ref("");
 const draftContent = ref("");
 /** 淇濆瓨鎸夐挳 loading 鎬?*/
 const isSaving = ref(false);
-/** 鏍囬杈撳叆妗?ref锛堢敤浜庤嚜鍔ㄨ仛鐒︼級 */
-const titleInputRef = ref<HTMLInputElement | null>(null);
-
 // ==================== 鑷姩淇濆瓨 ====================
 
 /** 鑷姩淇濆瓨鐘舵€侊細saved 宸蹭繚瀛?/ saving 淇濆瓨涓?/ unsaved 鏈夋湭淇濆瓨鏇存敼 */
@@ -538,6 +538,17 @@ const noteDetailLoading = computed(() => noteStore.loading.noteDetail);
 const noteListLoading = computed(() => {
     return noteStore.trashMode ? noteStore.loading.trash : noteStore.loading.notes;
 });
+
+const formatTime = (val: number | string | null | undefined) => {
+    if (!val) return "-";
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return "-";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const createdText = computed(() => formatTime(noteStore.activeNote?.created_at));
+const updatedText = computed(() => formatTime(noteStore.activeNote?.updated_at));
 
 // ==================== 鏁版嵁鍔犺浇 ====================
 
@@ -852,8 +863,6 @@ const handleCreateNoteInCategory = async (categoryId: number) => {
         highlightedCategoryId.value = null;
         await noteStore.selectNote(result.id);
         void router.push(`/app/note/${result.id}`);
-        await nextTick();
-        titleInputRef.value?.focus();
     }
 };
 
@@ -979,43 +988,120 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
     void handleSaveNote();
 };
 
-/** 鏍囬澶辩劍鏃惰嚜鍔ㄤ繚瀛樻爣棰橈紙鍚屾椂淇濆瓨褰撳墠缂栬緫涓殑鍐呭锛岄槻姝㈠唴瀹逛涪澶憋級 */
-const handleSaveTitle = async () => {
-    if (noteStore.activeNoteId === null) return;
-    const trimmed = draftTitle.value.trim();
-    if (!trimmed) {
-        // 标题不能为空，回退到原值
-        draftTitle.value = noteStore.activeNote?.title ?? t("note.note.untitled");
-        return;
-    }
-    const latestContent = getLatestContent();
-
-    // 鏍囬鎴栧唴瀹规湁鍙樺寲鏃舵墠淇濆瓨
-    if (trimmed !== noteStore.activeNote?.title || latestContent !== noteStore.activeNote?.content) {
-        isSaving.value = true;
-        if (autoSaveTimer) clearTimeout(autoSaveTimer);
-        try {
-            await noteStore.updateNote(noteStore.activeNoteId, {
-                title: trimmed,
-                content: latestContent,
-            });
-            autoSaveStatus.value = "saved";
-        } finally {
-            nextTick(() => { isSaving.value = false; });
-        }
-    }
-};
 </script>
 
 <template>
   <!-- ==================== 妗岄潰绔細Typora 椋庢牸甯冨眬 ==================== -->
   <div v-if="!isMobile" class="flex h-screen w-screen flex-col overflow-hidden bg-white">
-    <header class="flex h-8 shrink-0 items-center justify-end border-b border-slate-200 bg-[#fafafa] px-2 text-sm text-slate-800">
-      <NDropdown :options="fileMenuOptions" trigger="click" placement="bottom-end" @select="handleFileMenuSelect">
-        <button class="flex h-7 w-7 items-center justify-center rounded transition hover:bg-slate-200" type="button" title="文件">
-          <ZIcon name="ri:settings-3-line" :size="17" color="currentColor" />
+    <header class="flex h-14 shrink-0 items-stretch border-b border-slate-200 bg-white text-sm text-slate-800">
+      <div
+        :style="{ width: col1Width + 'px' }"
+        class="flex shrink-0 items-center gap-3 border-r border-slate-200 px-4"
+      >
+        <img src="/static/images/znote.svg" alt="ZNote" class="h-8 w-8 shrink-0" />
+        <div class="min-w-0">
+          <div class="truncate text-sm font-semibold tracking-[0.18em] text-slate-900">{{ appName }}</div>
+          <div class="truncate text-[11px] text-slate-400">Markdown Workspace</div>
+        </div>
+      </div>
+
+      <div class="flex min-w-0 flex-1 items-center justify-between gap-4 border-r border-slate-200 px-5">
+        <div class="flex min-w-0 items-center gap-4 text-xs">
+          <div class="flex min-w-0 items-center gap-1.5">
+            <ZIcon name="ri:folder-line" :size="14" color="#94a3b8" />
+            <span class="text-slate-400">{{ t("note.meta.notebook") }}</span>
+            <span class="truncate font-medium text-slate-700">{{ activeCategoryName }}</span>
+          </div>
+          <div v-if="noteStore.activeNote" class="flex items-center gap-1.5 text-slate-500">
+            <ZIcon name="ri:add-circle-line" :size="13" color="#94a3b8" />
+            <span class="text-slate-400">{{ t("note.meta.created_at") }}</span>
+            <span class="text-slate-700">{{ createdText }}</span>
+          </div>
+          <div v-if="noteStore.activeNote" class="flex items-center gap-1.5 text-slate-500">
+            <ZIcon name="ri:edit-2-line" :size="13" color="#94a3b8" />
+            <span class="text-slate-400">{{ t("note.meta.updated_at") }}</span>
+            <span class="text-slate-700">{{ updatedText }}</span>
+          </div>
+          <div v-if="editorTouched && autoSaveStatus === 'saved'" class="flex items-center gap-1 text-emerald-500">
+            <ZIcon name="ri:check-line" :size="12" color="currentColor" />
+            <span>{{ t("note.editor.auto_saved") }}</span>
+          </div>
+          <div v-else-if="editorTouched && autoSaveStatus === 'unsaved'" class="flex items-center gap-1 text-amber-500">
+            <span class="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <span>{{ t("note.editor.unsaved") }}</span>
+          </div>
+          <div v-else-if="editorTouched && autoSaveStatus === 'saving'" class="flex items-center gap-1 text-slate-400">
+            <ZIcon name="ri:loader-4-line" :size="11" color="currentColor" class="animate-spin" />
+            <span>{{ t("note.editor.auto_saving") }}</span>
+          </div>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-2">
+          <button
+            v-if="viewingVersion"
+            class="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-amber-600 transition hover:bg-amber-50"
+            type="button"
+            @click="handleBackToCurrent"
+          >
+            <ZIcon name="ri:arrow-go-back-line" :size="14" color="currentColor" />
+            <span>{{ t("note.version.back_to_current") }}</span>
+          </button>
+          <NInput
+            v-if="showSearchBox"
+            v-model:value="searchKeyword"
+            size="small"
+            class="min-w-0 w-48 max-w-[18vw] xl:w-64"
+            :placeholder="t('note.note.search.placeholder')"
+            clearable
+            @keydown.escape="clearDesktopSearch"
+          >
+            <template #prefix>
+              <ZIcon name="ri:search-line" :size="14" color="#94a3b8" />
+            </template>
+          </NInput>
+          <button
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            type="button"
+            :title="t('note.note.search.placeholder')"
+            @click="handleToggleSearch"
+          >
+            <ZIcon :name="showSearchBox ? 'ri:close-line' : 'ri:search-line'" :size="17" color="currentColor" />
+          </button>
+          <button
+            class="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            type="button"
+            @click="showVersionHistory = true"
+          >
+            <ZIcon name="ri:history-line" :size="14" color="currentColor" />
+            <span>{{ t("note.version.button") }}</span>
+          </button>
+          <button
+            class="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="isSaving || noteStore.activeNoteId === null"
+            @click="handleSaveNote"
+          >
+            <ZIcon v-if="!isSaving" name="ri:save-line" :size="14" color="currentColor" />
+            <ZIcon v-else name="ri:loader-4-line" :size="14" color="currentColor" class="animate-spin" />
+            <span>{{ isSaving ? t("note.editor.saving") : t("note.editor.save") }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-2 px-4">
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+          type="button"
+          :title="t('note.ai.button')"
+          @click="handleAiClick"
+        >
+          <ZIcon name="ri:robot-2-line" :size="18" color="currentColor" />
         </button>
-      </NDropdown>
+        <NDropdown :options="fileMenuOptions" trigger="click" placement="bottom-end" @select="handleFileMenuSelect">
+          <button class="flex h-8 w-8 items-center justify-center rounded transition hover:bg-slate-100" type="button" title="文件">
+            <ZIcon name="ri:settings-3-line" :size="17" color="currentColor" />
+          </button>
+        </NDropdown>
+      </div>
     </header>
 
     <div class="flex min-h-0 flex-1 overflow-hidden">
@@ -1076,55 +1162,7 @@ const handleSaveTitle = async () => {
         />
 
         <template v-else-if="noteStore.activeNote">
-          <div class="shrink-0 bg-white px-8 py-4">
-            <div class="flex items-start gap-3">
-              <input
-                ref="titleInputRef"
-                v-model="draftTitle"
-                :placeholder="t('note.editor.placeholder')"
-                type="text"
-                class="note-title-input min-w-0 flex-1"
-                @focus="editorTouched = true"
-                @blur="handleSaveTitle"
-                @keydown.enter="($event.target as HTMLElement).blur()"
-              />
-              <div class="flex shrink-0 items-center gap-1">
-                <NInput
-                  v-if="showSearchBox"
-                  v-model:value="searchKeyword"
-                  size="small"
-                  class="w-64"
-                  :placeholder="t('note.note.search.placeholder')"
-                  clearable
-                  @keydown.escape="clearDesktopSearch"
-                >
-                  <template #prefix>
-                    <ZIcon name="ri:search-line" :size="14" color="#94a3b8" />
-                  </template>
-                </NInput>
-                <button
-                  class="flex h-8 w-8 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-                  type="button"
-                  :title="t('note.note.search.placeholder')"
-                  @click="handleToggleSearch"
-                >
-                  <ZIcon :name="showSearchBox ? 'ri:close-line' : 'ri:search-line'" :size="17" color="currentColor" />
-                </button>
-              </div>
-            </div>
-            <div class="mt-2">
-              <NoteMetaBar
-                :note="noteStore.activeNote"
-                :category-name="activeCategoryName"
-                :saving="isSaving"
-                :viewing-version="viewingVersion"
-                :auto-save-status="editorTouched ? autoSaveStatus : undefined"
-                @save="handleSaveNote"
-                @history="showVersionHistory = true"
-                @back-to-current="handleBackToCurrent"
-              />
-            </div>
-
+          <div class="shrink-0 bg-white px-8 pt-4">
             <NAlert
               v-if="viewingVersion"
               type="warning"
@@ -1136,7 +1174,7 @@ const handleSaveTitle = async () => {
             </NAlert>
           </div>
 
-          <div class="min-h-0 flex-1 bg-white px-8 pb-6 pt-0">
+          <div class="min-h-0 flex-1 bg-white px-8 pb-6 pt-4">
             <NoteEditor
               ref="editorRef"
               :model-value="draftContent"
@@ -1428,29 +1466,17 @@ const handleSaveTitle = async () => {
     <main v-else class="flex flex-1 flex-col overflow-hidden bg-white">
       <template v-if="noteStore.activeNote">
         <div class="shrink-0 bg-white px-4 py-3">
-          <input
-            ref="titleInputRef"
-            v-model="draftTitle"
-            :placeholder="t('note.editor.placeholder')"
-            type="text"
-            class="note-title-input"
-            @focus="editorTouched = true"
-            @blur="handleSaveTitle"
-            @keydown.enter="($event.target as HTMLElement).blur()"
+          <NoteMetaBar
+            :note="noteStore.activeNote"
+            :category-name="activeCategoryName"
+            :saving="isSaving"
+            :viewing-version="viewingVersion"
+            :auto-save-status="editorTouched ? autoSaveStatus : undefined"
+            :mobile="true"
+            @save="handleSaveNote"
+            @history="showVersionHistory = true"
+            @back-to-current="handleBackToCurrent"
           />
-          <div class="mt-2">
-            <NoteMetaBar
-              :note="noteStore.activeNote"
-              :category-name="activeCategoryName"
-              :saving="isSaving"
-              :viewing-version="viewingVersion"
-              :auto-save-status="editorTouched ? autoSaveStatus : undefined"
-              :mobile="true"
-              @save="handleSaveNote"
-              @history="showVersionHistory = true"
-              @back-to-current="handleBackToCurrent"
-            />
-          </div>
           <NAlert
             v-if="viewingVersion"
             type="warning"
@@ -1553,6 +1579,7 @@ const handleSaveTitle = async () => {
 
   <!-- ==================== AI 鎮诞鎸夐挳 ==================== -->
   <button
+    v-if="isMobile"
     class="ai-float-btn"
     :title="t('note.ai.button')"
     @click="handleAiClick"
@@ -1585,24 +1612,6 @@ const handleSaveTitle = async () => {
   flex-shrink: 0;
   background: transparent;
 }
-/* 绗旇鏍囬杈撳叆妗嗭細鍘熺敓 input锛屾棤杈规鏃犲唴杈硅窛锛岄€傚悎鏍囬澶у皬 */
-.note-title-input {
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.4;
-  color: #1e293b;
-}
-.note-title-input::placeholder {
-  color: #cbd5e1;
-  font-weight: 600;
-}
-
 /* AI 鎮诞鎸夐挳锛氬浐瀹氬湪鍙充笅瑙?*/
 .ai-float-btn {
   position: fixed;

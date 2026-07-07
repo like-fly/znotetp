@@ -2,17 +2,21 @@
 set -e
 
 BASE_DIR=$(pwd)
+PUBLIC_DIR="$BASE_DIR/public"
+DIST_DIR="$BASE_DIR/dist"
+FRONTEND_DIR="$BASE_DIR/frontend"
 
-mkdir -p "$BASE_DIR/public/static/assets"
-mkdir -p "$BASE_DIR/public/static/vditor"
+rm -rf "$PUBLIC_DIR" "$DIST_DIR"
+mkdir -p "$PUBLIC_DIR/static/assets"
+mkdir -p "$PUBLIC_DIR/static/images"
+mkdir -p "$PUBLIC_DIR/static/vditor"
 
-cd "$BASE_DIR/frontend"
-# bun run icons:sync
+cd "$FRONTEND_DIR"
 bun run build
 cd "$BASE_DIR"
 
-rm -rf "$BASE_DIR/public/static/assets"/*
-cp -ar "$BASE_DIR/frontend/dist/static/assets"/* "$BASE_DIR/public/static/assets/"
-cp -ar "$BASE_DIR/frontend/dist/static/vditor"/* "$BASE_DIR/public/static/vditor/"
+cp -ar "$FRONTEND_DIR/dist/static/assets/." "$PUBLIC_DIR/static/assets/"
+cp -ar "$FRONTEND_DIR/public/static/images/." "$PUBLIC_DIR/static/images/"
+cp -ar "$FRONTEND_DIR/public/static/vditor/." "$PUBLIC_DIR/static/vditor/"
 
-# bun run output
+bun run output

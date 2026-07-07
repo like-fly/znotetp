@@ -17,7 +17,7 @@ import ZIcon from "@/components/DynamicIcon.vue";
 import type { Note } from "@/types/note";
 
 /** 右键菜单可触发的操作 */
-export type NoteContextAction = "trash" | "pin" | "move" | "open_new_window" | "permanent_delete" | "share" | "disable_vectorize" | "enable_vectorize";
+export type NoteContextAction = "rename" | "trash" | "pin" | "move" | "open_new_window" | "permanent_delete" | "share" | "disable_vectorize" | "enable_vectorize";
 
 const props = defineProps<{
     /** 菜单是否显示 */
@@ -71,6 +71,11 @@ const menuOptions = computed(() => {
             icon: () => h(ZIcon, { name: "ri:arrow-right-circle-line", size: 16 }),
         },
         {
+            label: t("note.category.context.rename"),
+            key: "rename",
+            icon: () => h(ZIcon, { name: "ri:edit-line", size: 16 }),
+        },
+        {
             label: isPinned.value ? t("note.context.unpin") : t("note.context.pin"),
             key: "pin",
             icon: () => h(ZIcon, { name: "ri:pushpin-2-line", size: 16 }),
@@ -95,7 +100,7 @@ const menuOptions = computed(() => {
 
 /** NDropdown 选中某项时：转发给父组件处理，并关闭菜单 */
 const handleSelect = (key: string) => {
-    if (props.note && (key === "trash" || key === "pin" || key === "move" || key === "open_new_window" || key === "permanent_delete" || key === "share" || key === "disable_vectorize" || key === "enable_vectorize")) {
+    if (props.note && (key === "rename" || key === "trash" || key === "pin" || key === "move" || key === "open_new_window" || key === "permanent_delete" || key === "share" || key === "disable_vectorize" || key === "enable_vectorize")) {
         emit("select", key as NoteContextAction, props.note);
     }
     emit("update:show", false);

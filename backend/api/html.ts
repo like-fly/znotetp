@@ -1,12 +1,11 @@
 import { Context } from "hono";
 import { html, raw } from "hono/html";
-import { APP_DATE } from "@/api/info";
 import { checkSystemInitialized } from "@/api/system";
 import { getSettingValue } from "@/api/setting";
+import { resolveFrontendAssets } from "@/utils/frontend-assets";
 import { getAppName } from "@/utils/helper";
 
 export const index = async (c: Context) => {
-    // 首页路由检查系统初始化状态，未初始化则重定向到初始化页面
     if (c.req.path === "/") {
         const initialized = await checkSystemInitialized();
         if (!initialized) {
@@ -14,15 +13,30 @@ export const index = async (c: Context) => {
         }
     }
 
-    // 获取站点配置
     const site_setting = (await getSettingValue("site_setting")) || {};
 
-    // dashboard 路由不注入自定义 header（避免在管理页面执行自定义脚本）
     if (c.req.path.startsWith("/dashboard")) {
         site_setting.custom_header = "";
     }
 
     const title = site_setting.title || getAppName();
+    const frontendAssets = resolveFrontendAssets();
+
+    if (!frontendAssets) {
+        c.status(503);
+        return c.html(html`<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title}</title>
+  </head>
+  <body style="font-family: sans-serif; padding: 24px;">
+    <h1>Frontend assets not built</h1>
+    <p>Please run <code>bun run build</code> before starting the production server.</p>
+  </body>
+</html>`);
+    }
 
     return c.html(html`<!DOCTYPE html>
 <html lang="zh-CN">
@@ -33,11 +47,9 @@ export const index = async (c: Context) => {
     <meta name="keywords" content="${site_setting.keywords || ""}" />
     <meta name="description" content="${site_setting.description || ""}" />
     <link rel="icon" href="/static/images/znote.svg" />
-    <script type="module" crossorigin src="/static/assets/index.${APP_DATE}.js"></script>
-    <link rel="stylesheet" href="/static/assets/index.${APP_DATE}.css" />
-    <!--自定义header-->
+    <script type="module" crossorigin src="/static/assets/${frontendAssets.jsEntry}"></script>
+    <link rel="stylesheet" href="/static/assets/${frontendAssets.cssEntry}" />
     ${raw(site_setting.custom_header) || ""}
-    <!--自定义header end-->
     <style>
       body { margin: 0; background: #f5f7fb; }
       #app-loading {

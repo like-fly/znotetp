@@ -53,7 +53,7 @@
 }
 .vditor-reset{
     padding:0 36px 24px 36px !important;
-    background-color: #FAFBFC !important;
+    background-color: #ffffff !important;
 }
 .vditor-reset strong{
     font-weight: 600 !important;    
@@ -64,14 +64,32 @@
     border-bottom-width: 0px !important;
     border-radius: 8px !important;
     border:0px !important;
-    
+    background-color: #ffffff !important;
 }
 
 .vditor-toolbar{
-    border: 0px !important;
-    padding-left:26px !important; 
-    padding-right:26px !important; 
-    /*border-top-width: 0px !important;*/
+    display: none !important;
+}
+
+/* 隐藏 Vditor 即时渲染模式中的标题层级标记，例如 H1、H2。 */
+.vditor-ir__marker,
+.vditor-ir h1 .vditor-ir__marker,
+.vditor-ir h2 .vditor-ir__marker,
+.vditor-ir h3 .vditor-ir__marker,
+.vditor-ir h4 .vditor-ir__marker,
+.vditor-ir h5 .vditor-ir__marker,
+.vditor-ir h6 .vditor-ir__marker {
+    display: none !important;
+}
+
+.vditor-ir .vditor-reset > h1::before,
+.vditor-ir .vditor-reset > h2::before,
+.vditor-ir .vditor-reset > h3::before,
+.vditor-ir .vditor-reset > h4::before,
+.vditor-ir .vditor-reset > h5::before,
+.vditor-ir .vditor-reset > h6::before {
+    display: none !important;
+    content: none !important;
 }
 
 /* 即时渲染模式下图片默认居中显示，并加 8px 圆角边框 */
