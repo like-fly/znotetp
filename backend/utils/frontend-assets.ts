@@ -17,42 +17,24 @@ export const resolveFrontendAssets = (): FrontendAssets | null => {
             .filter((entry) => entry.isFile())
             .map((entry) => entry.name);
 
-        const buildEntries = assetFiles.reduce<Map<string, Partial<FrontendAssets>>>((map, fileName) => {
-            const jsMatch = fileName.match(/^app-([A-Za-z0-9_-]+)\.js$/);
-            if (jsMatch) {
-                const buildId = jsMatch[1];
-                const current = map.get(buildId) || { buildId };
-                current.jsEntry = fileName;
-                map.set(buildId, current);
-                return map;
-            }
+        // Vite 入口 JS 和 CSS 的 hash 彼此独立，不能假设同一批产物会共用同一个后缀。
+        const latestJsEntry = assetFiles
+            .filter((fileName) => /^app-[A-Za-z0-9_-]+\.js$/.test(fileName))
+            .sort((a, b) => statSync(join(assetsDir, b)).mtimeMs - statSync(join(assetsDir, a)).mtimeMs)[0];
 
-            const cssMatch = fileName.match(/^app-([A-Za-z0-9_-]+)\.css$/);
-            if (cssMatch) {
-                const buildId = cssMatch[1];
-                const current = map.get(buildId) || { buildId };
-                current.cssEntry = fileName;
-                map.set(buildId, current);
-            }
+        const latestCssEntry = assetFiles
+            .filter((fileName) => /^app-[A-Za-z0-9_-]+\.css$/.test(fileName))
+            .sort((a, b) => statSync(join(assetsDir, b)).mtimeMs - statSync(join(assetsDir, a)).mtimeMs)[0];
 
-            return map;
-        }, new Map());
-
-        const pairedEntries = Array.from(buildEntries.values())
-            .filter((entry): entry is FrontendAssets => Boolean(entry.jsEntry && entry.cssEntry && entry.buildId))
-            .sort((a, b) => {
-                const aMtime = statSync(join(assetsDir, a.jsEntry)).mtimeMs;
-                const bMtime = statSync(join(assetsDir, b.jsEntry)).mtimeMs;
-                return bMtime - aMtime;
-            });
-
-        const latestEntry = pairedEntries[0];
-
-        if (!latestEntry) {
+        if (!latestJsEntry || !latestCssEntry) {
             return null;
         }
 
-        return latestEntry;
+        return {
+            jsEntry: latestJsEntry,
+            cssEntry: latestCssEntry,
+            buildId: latestJsEntry.match(/^app-([A-Za-z0-9_-]+)\.js$/)?.[1] || "unknown",
+        };
     } catch {
         return null;
     }
