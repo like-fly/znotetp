@@ -49,6 +49,16 @@ const corsOptions = {
         },
 };
 
+const setStaticCacheHeaders = (path: string, c: { header: (name: string, value: string) => void }) => {
+    // 带内容哈希的静态资源可以长期缓存；非哈希入口或普通静态文件要求重新校验。
+    if (/\/assets\/.+-[A-Za-z0-9_-]+\.[^.]+$/.test(path)) {
+        c.header("Cache-Control", "public, immutable, max-age=604800");
+        return;
+    }
+
+    c.header("Cache-Control", "public, no-cache, max-age=0, must-revalidate");
+};
+
 export const publicRouter = new Hono<{ Variables: AppVariables }>();
 export const userRouter = new Hono<{ Variables: AppVariables }>().basePath("/api/user");
 export const adminRouter = new Hono<{ Variables: AppVariables }>().basePath("/api/admin");
@@ -61,8 +71,8 @@ publicRouter.use(
     "/static/*",
     serveStatic({
         root: "./public",
-        onFound: (_path, c) => {
-            c.header("Cache-Control", "public, immutable, max-age=604800");
+        onFound: (path, c) => {
+            setStaticCacheHeaders(path, c);
         },
     }),
 );

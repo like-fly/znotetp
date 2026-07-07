@@ -128,12 +128,12 @@ const editorMenuOptions = computed(() => [
         ],
     },
     {
-        label: "插入",
-        key: "insert",
-        children: [
-            { label: "图像", key: "insert_image" },
-            { label: "表格", key: "insert_table" },
-        ],
+        label: "插入图片",
+        key: "insert_image",
+    },
+    {
+        label: "插入表格",
+        key: "insert_table",
     },
 ]);
 const editorMenuProps = () => ({

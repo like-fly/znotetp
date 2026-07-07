@@ -7,7 +7,6 @@ import AutoImport from "unplugin-auto-import/vite";
 import { NaiveUiResolver } from "unplugin-vue-components/resolvers";
 import Components from "unplugin-vue-components/vite";
 
-const buildDate = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 10);
 const devApiTarget = process.env.DEV_API_PROXY_TARGET || "http://localhost:3888";
 
 export default defineConfig({
@@ -72,10 +71,11 @@ export default defineConfig({
         cssCodeSplit: false,
         rollupOptions: {
             output: {
-                entryFileNames: `static/assets/index.${buildDate}.js`,
+                // 入口文件使用内容哈希，避免同一天重复发版时命中旧缓存。
+                entryFileNames: "static/assets/app-[hash].js",
                 assetFileNames: (assetInfo) => {
                     if (assetInfo.name && assetInfo.name.endsWith(".css")) {
-                        return `static/assets/index.${buildDate}.css`;
+                        return "static/assets/app-[hash].css";
                     }
                     return "static/assets/[name]-[hash].[ext]";
                 },

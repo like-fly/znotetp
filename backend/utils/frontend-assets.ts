@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 type FrontendAssets = {
@@ -17,16 +17,42 @@ export const resolveFrontendAssets = (): FrontendAssets | null => {
             .filter((entry) => entry.isFile())
             .map((entry) => entry.name);
 
-        const jsEntry = assetFiles.find((name) => /^index\.\d+\.js$/.test(name));
-        const cssEntry = assetFiles.find((name) => /^index\.\d+\.css$/.test(name));
+        const buildEntries = assetFiles.reduce<Map<string, Partial<FrontendAssets>>>((map, fileName) => {
+            const jsMatch = fileName.match(/^app-([A-Za-z0-9_-]+)\.js$/);
+            if (jsMatch) {
+                const buildId = jsMatch[1];
+                const current = map.get(buildId) || { buildId };
+                current.jsEntry = fileName;
+                map.set(buildId, current);
+                return map;
+            }
 
-        if (!jsEntry || !cssEntry) {
+            const cssMatch = fileName.match(/^app-([A-Za-z0-9_-]+)\.css$/);
+            if (cssMatch) {
+                const buildId = cssMatch[1];
+                const current = map.get(buildId) || { buildId };
+                current.cssEntry = fileName;
+                map.set(buildId, current);
+            }
+
+            return map;
+        }, new Map());
+
+        const pairedEntries = Array.from(buildEntries.values())
+            .filter((entry): entry is FrontendAssets => Boolean(entry.jsEntry && entry.cssEntry && entry.buildId))
+            .sort((a, b) => {
+                const aMtime = statSync(join(assetsDir, a.jsEntry)).mtimeMs;
+                const bMtime = statSync(join(assetsDir, b.jsEntry)).mtimeMs;
+                return bMtime - aMtime;
+            });
+
+        const latestEntry = pairedEntries[0];
+
+        if (!latestEntry) {
             return null;
         }
 
-        const buildId = jsEntry.match(/^index\.(\d+)\.js$/)?.[1] || "unknown";
-
-        return { jsEntry, cssEntry, buildId };
+        return latestEntry;
     } catch {
         return null;
     }
