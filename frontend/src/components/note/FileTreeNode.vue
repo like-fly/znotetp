@@ -292,7 +292,7 @@ onBeforeUnmount(clearExpandTimer);
     <div v-if="isExpanded">
       <VueDraggable
         v-model="localChildren"
-        :class="['min-h-1', currentDrag.kind === 'category' ? 'min-h-6 py-1' : '']"
+        :class="['min-h-1', currentDrag.kind === 'category' ? 'min-h-6' : '']"
         :animation="150"
         :disabled="noteStore.loading.save"
         :group="categoryGroup"
@@ -321,7 +321,7 @@ onBeforeUnmount(clearExpandTimer);
 
       <VueDraggable
         v-model="localNotes"
-        :class="['min-h-1', currentDrag.kind === 'note' ? 'min-h-6 py-1' : '']"
+        :class="['min-h-1', currentDrag.kind === 'note' ? 'min-h-6' : '']"
         :animation="150"
         :disabled="noteStore.loading.save"
         :group="noteGroup"

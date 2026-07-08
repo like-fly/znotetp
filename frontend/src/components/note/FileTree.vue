@@ -340,7 +340,7 @@ const handleBlankClick = (event: MouseEvent) => {
       <template v-else>
         <VueDraggable
           v-model="localRootNotes"
-          :class="['min-h-1', dragSession.kind === 'note' ? 'min-h-6 py-1' : '']"
+          :class="['min-h-1', dragSession.kind === 'note' ? 'min-h-6' : '']"
           :animation="150"
           :disabled="noteStore.loading.save"
           :group="rootNoteGroup"
@@ -375,7 +375,7 @@ const handleBlankClick = (event: MouseEvent) => {
 
         <VueDraggable
           v-model="localTree"
-          :class="['min-h-1', dragSession.kind === 'category' ? 'min-h-6 py-1' : '']"
+          :class="['min-h-1', dragSession.kind === 'category' ? 'min-h-6' : '']"
           :animation="150"
           :disabled="noteStore.loading.save"
           :group="rootCategoryGroup"
