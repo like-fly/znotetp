@@ -258,8 +258,10 @@ const handleConfirmRename = async () => {
 /** 确认移动笔记 */
 const handleMoveConfirm = async (targetId: number) => {
     if (!moveNote.value) return;
-    await noteStore.moveNote(moveNote.value.id, targetId);
-    message.success(t("note.move.success"));
+    const result = await noteStore.moveNote(moveNote.value.id, targetId);
+    if (!result) {
+        message.error(t("note.move.failed"));
+    }
     showMoveDialog.value = false;
 };
 

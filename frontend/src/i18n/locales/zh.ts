@@ -298,6 +298,7 @@ export default {
     "note.move.current": "当前位置",
     "note.move.save": "保存",
     "note.move.success": "移动成功",
+    "note.move.failed": "移动失败，请重试",
     "note.context.open_new_window": "新窗口打开",
     "note.context.move_note": "移动笔记",
     "note.context.move_category": "移动分类",

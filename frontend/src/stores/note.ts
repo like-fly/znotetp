@@ -565,7 +565,7 @@ export const useNoteStore = defineStore("note", {
          * 更新笔记本/分类
          * 更新成功后递归更新树中对应节点（保留 children 结构）
          */
-        async updateNotebook(id: number, payload: { title?: string; description?: string; parent_id?: number | null }) {
+        async updateNotebook(id: number, payload: { title?: string; description?: string; parent_id?: number | null; sort_order?: number }) {
             this.loading.save = true;
             try {
                 const result = await notebookApi.updateNotebook(id, payload);
@@ -584,10 +584,13 @@ export const useNoteStore = defineStore("note", {
          * @param id 被移动的分类 ID
          * @param parentId 目标父节点 ID（null 表示移到顶层）
          */
-        async moveCategory(id: number, parentId: number | null) {
+        async moveCategory(id: number, parentId: number | null, sortOrder?: number) {
             this.loading.save = true;
             try {
-                const result = await notebookApi.updateNotebook(id, { parent_id: parentId });
+                const result = await notebookApi.updateNotebook(id, {
+                    parent_id: parentId,
+                    ...(sortOrder !== undefined ? { sort_order: sortOrder } : {}),
+                });
                 if (result) {
                     await this.loadNotebookTree();
                 }
@@ -603,11 +606,14 @@ export const useNoteStore = defineStore("note", {
          * @param id 被移动的笔记 ID
          * @param targetCategoryId 目标分类 ID
          */
-        async moveNote(id: number, targetCategoryId: number) {
+        async moveNote(id: number, targetCategoryId: number, sortOrder?: number) {
             this.loading.save = true;
             try {
                 const oldCategoryId = this.noteMap.get(id)?.notebook_id;
-                const result = await noteApi.updateNote(id, { notebook_id: targetCategoryId });
+                const result = await noteApi.updateNote(id, {
+                    notebook_id: targetCategoryId,
+                    ...(sortOrder !== undefined ? { sort_order: sortOrder } : {}),
+                });
                 if (result) {
                     // 从旧分类缓存中移除
                     if (oldCategoryId !== undefined) {
@@ -653,10 +659,10 @@ export const useNoteStore = defineStore("note", {
          * 用返回数据递归更新树中对应节点的 sort_order，并对各层重新排序
          * @param items 分类 id 及对应排序值
          */
-        async sortNotebooks(items: SortNotebookItem[]) {
+        async sortNotebooks(items: SortNotebookItem[], parentId?: number | null) {
             this.loading.save = true;
             try {
-                const result = await notebookApi.sortNotebooks(items);
+                const result = await notebookApi.sortNotebooks(items, parentId);
                 if (result) {
                     // 构建 id → sort_order 映射，递归更新并重新排序
                     const sortMap = new Map(result.map((n) => [n.id, n.sort_order]));
@@ -881,17 +887,17 @@ if (this.trashMode) this.exitTrashMode();
          * 用返回数据覆盖对应分类的本地缓存
          * @param items 笔记 id 及对应排序值
          */
-        async sortNotes(items: SortNoteItem[]) {
+        async sortNotes(items: SortNoteItem[], notebookId?: number) {
             this.loading.save = true;
             try {
-                const result = await noteApi.sortNotes(items);
+                const result = await noteApi.sortNotes(items, notebookId);
                 if (result) {
                     // 后端返回的列表属于同一分类，找出 notebook_id 后覆盖本地缓存
-                    const notebookId = result[0]?.notebook_id;
-                    if (notebookId !== undefined) {
+                    const resultNotebookId = result[0]?.notebook_id ?? notebookId;
+                    if (resultNotebookId !== undefined) {
                         this.notesByCategory = {
                             ...this.notesByCategory,
-                            [notebookId]: result,
+                            [resultNotebookId]: result,
                         };
                     }
                 }

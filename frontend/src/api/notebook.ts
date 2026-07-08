@@ -58,7 +58,7 @@ export const createNotebook = async (payload: CreateNotebookPayload): Promise<No
  */
 export const updateNotebook = async (
     id: number,
-    payload: { title?: string; description?: string; parent_id?: number | null },
+    payload: { title?: string; description?: string; parent_id?: number | null; sort_order?: number },
 ): Promise<Notebook | null> => {
     const res = await req.post<ApiResult<Notebook>>("/api/user/notebook/update", { id, ...payload });
     if (res.data?.code === 200) {
@@ -73,8 +73,11 @@ export const updateNotebook = async (
  * @param items 分类 id 及对应排序值
  * @returns 更新后的分类列表（失败返回 null）
  */
-export const sortNotebooks = async (items: SortNotebookItem[]): Promise<Notebook[] | null> => {
-    const res = await req.post<ApiResult<Notebook[]>>("/api/user/notebook/sort", { items });
+export const sortNotebooks = async (items: SortNotebookItem[], parentId?: number | null): Promise<Notebook[] | null> => {
+    const res = await req.post<ApiResult<Notebook[]>>("/api/user/notebook/sort", {
+        items,
+        ...(parentId !== undefined ? { parent_id: parentId } : {}),
+    });
     if (res.data?.code === 200) {
         return res.data.data ?? [];
     }

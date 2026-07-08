@@ -2,6 +2,7 @@
 import { computed, provide, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NInput, NModal, useMessage } from "naive-ui";
+import { VueDraggable } from "vue-draggable-plus";
 import ZIcon from "@/components/DynamicIcon.vue";
 import FileTreeNode from "@/components/note/FileTreeNode.vue";
 import NoteContextMenu, { type NoteContextAction } from "@/components/note/NoteContextMenu.vue";
@@ -39,10 +40,33 @@ const toggleExpand = (nodeId: number) => {
 };
 provide("fileTreeExpand", { expandedIds, toggleExpand });
 
+type DragKind = "category" | "note" | null;
+type DragSession = {
+    kind: DragKind;
+    id: number | null;
+};
+const dragSession = ref<DragSession>({
+    kind: null,
+    id: null,
+});
+const setDragging = (kind: DragKind, id: number | null = null) => {
+    dragSession.value = {
+        kind,
+        id,
+    };
+};
+provide("fileTreeDrag", { dragSession, setDragging });
+
+const setDraggingFromElement = (kind: Exclude<DragKind, null>, element: HTMLElement) => {
+    const raw = kind === "category" ? element.dataset.categoryId : element.dataset.noteId;
+    const id = Number(raw);
+    setDragging(kind, Number.isFinite(id) ? id : null);
+};
+
 watch(
-    () => noteStore.activeCategoryId,
-    (id) => {
-        if (id === null) return;
+    () => [noteStore.activeCategoryId, noteStore.activeNoteId] as const,
+    ([id, noteId]) => {
+        if (id === null || noteId === null) return;
         expandedIds.value = new Set([...expandedIds.value, id]);
     },
     { immediate: true },
@@ -77,6 +101,10 @@ const rootNotes = computed(() => {
     if (rootId === null || noteStore.searchMode || noteStore.trashMode) return [];
     return noteStore.notesByCategory[rootId] ?? [];
 });
+const localTree = ref<NotebookNode[]>([]);
+const localRootNotes = ref<Note[]>([]);
+const rootCategoryGroup = { name: "file-tree-categories", pull: true, put: ["file-tree-categories"] };
+const rootNoteGroup = { name: "file-tree-notes", pull: true, put: ["file-tree-notes"] };
 const isLoading = computed(() => noteStore.loading.tree || noteStore.loading.search || noteStore.loading.trash);
 const resultNotes = computed(() => {
     if (noteStore.trashMode) return noteStore.trashNotes;
@@ -85,6 +113,18 @@ const resultNotes = computed(() => {
 });
 const resultTitle = computed(() => noteStore.trashMode ? t("note.trash.title") : t("note.note.search.results"));
 const emptyText = computed(() => noteStore.trashMode ? t("note.trash.empty") : t("note.note.search.no_results"));
+
+watch(
+    () => props.tree,
+    (tree) => { localTree.value = [...tree]; },
+    { immediate: true },
+);
+
+watch(
+    () => rootNotes.value,
+    (notes) => { localRootNotes.value = [...notes]; },
+    { immediate: true },
+);
 
 const handleNoteContextMenu = (note: Note, event: MouseEvent) => {
     menuNote.value = note;
@@ -151,9 +191,115 @@ const handleConfirmRename = async () => {
 
 const handleMoveConfirm = async (targetId: number) => {
     if (!moveNote.value) return;
-    await noteStore.moveNote(moveNote.value.id, targetId);
-    message.success(t("note.move.success"));
+    const result = await noteStore.moveNote(moveNote.value.id, targetId);
+    if (!result) {
+        message.error(t("note.move.failed"));
+    }
     showMoveDialog.value = false;
+};
+
+const rootCategoryItems = () => localTree.value.map((node, idx) => ({ id: node.id, sort_order: idx }));
+const rootNoteItems = () => localRootNotes.value.map((note, idx) => ({ id: note.id, sort_order: idx }));
+
+type SortableMoveEvent = {
+    item?: HTMLElement;
+    related?: HTMLElement;
+    originalEvent?: DragEvent | MouseEvent;
+};
+
+const pointerInsideFolderDropTrigger = (event: SortableMoveEvent) => {
+    const pointer = event.originalEvent;
+    if (!pointer || !event.related) return false;
+    const row = event.related.closest("[data-category-id]");
+    if (!row) return false;
+    const triggers = row.querySelectorAll<HTMLElement>('[data-folder-drop-trigger="true"]');
+    return [...triggers].some((trigger) => {
+        const rect = trigger.getBoundingClientRect();
+        return pointer.clientX >= rect.left
+            && pointer.clientX <= rect.right
+            && pointer.clientY >= rect.top
+            && pointer.clientY <= rect.bottom;
+    });
+};
+
+const canMoveRootCategory = (event: SortableMoveEvent) => !pointerInsideFolderDropTrigger(event);
+
+const rollbackRootCategories = async () => {
+    localTree.value = [...props.tree];
+    await noteStore.silentRefreshTree();
+};
+
+const rollbackRootNotes = async () => {
+    localRootNotes.value = [...rootNotes.value];
+    await noteStore.silentRefreshCategoryNotes();
+};
+
+const handleRootCategorySort = async () => {
+    if (noteStore.activeNotebookId === null) return;
+    const result = await noteStore.sortNotebooks(rootCategoryItems(), noteStore.activeNotebookId);
+    if (!result) {
+        await rollbackRootCategories();
+        message.error(t("notebook.sort.failed"));
+    }
+};
+
+const handleRootCategoryAdd = async (event: SortableMoveEvent) => {
+    if (noteStore.activeNotebookId === null || !event.item) {
+        await rollbackRootCategories();
+        return;
+    }
+    const categoryId = Number(event.item.dataset.categoryId);
+    const newIndex = localTree.value.findIndex((node) => node.id === categoryId);
+    if (!Number.isFinite(categoryId) || newIndex < 0) {
+        await rollbackRootCategories();
+        return;
+    }
+    const items = rootCategoryItems();
+    const moved = await noteStore.moveCategory(categoryId, noteStore.activeNotebookId, newIndex);
+    if (!moved) {
+        await rollbackRootCategories();
+        message.error(t("note.move.failed"));
+        return;
+    }
+    const result = await noteStore.sortNotebooks(items, noteStore.activeNotebookId);
+    if (!result) {
+        await rollbackRootCategories();
+        message.error(t("notebook.sort.failed"));
+    }
+};
+
+const handleRootNoteSort = async () => {
+    if (noteStore.activeNotebookId === null) return;
+    const result = await noteStore.sortNotes(rootNoteItems(), noteStore.activeNotebookId);
+    if (!result) {
+        await rollbackRootNotes();
+        message.error(t("note.sort.failed"));
+    }
+};
+
+const handleRootNoteAdd = async (event: SortableMoveEvent) => {
+    if (noteStore.activeNotebookId === null || !event.item) {
+        await rollbackRootNotes();
+        return;
+    }
+    const noteId = Number(event.item.dataset.noteId);
+    const newIndex = localRootNotes.value.findIndex((note) => note.id === noteId);
+    if (!Number.isFinite(noteId) || newIndex < 0) {
+        await rollbackRootNotes();
+        return;
+    }
+    const items = rootNoteItems();
+    const moved = await noteStore.moveNote(noteId, noteStore.activeNotebookId, newIndex);
+    if (!moved) {
+        await rollbackRootNotes();
+        message.error(t("note.move.failed"));
+        return;
+    }
+    const result = await noteStore.sortNotes(items, noteStore.activeNotebookId);
+    if (!result) {
+        await rollbackRootNotes();
+        message.error(t("note.sort.failed"));
+    }
 };
 
 const handleBlankClick = (event: MouseEvent) => {
@@ -192,34 +338,69 @@ const handleBlankClick = (event: MouseEvent) => {
       </template>
 
       <template v-else>
-        <button
-          v-for="note in rootNotes"
-          :key="`root-${note.id}`"
-          data-file-tree-item="true"
-          class="group flex w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-[13px] leading-5 transition"
-          :class="activeNoteId === note.id ? 'bg-slate-200 text-slate-950' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'"
-          style="padding-left: 34px"
-          type="button"
-          @click="emit('selectNote', note.id)"
-          @contextmenu.prevent.stop="(e: MouseEvent) => handleNoteContextMenu(note, e)"
+        <VueDraggable
+          v-model="localRootNotes"
+          :class="['min-h-1', dragSession.kind === 'note' ? 'min-h-6 py-1' : '']"
+          :animation="150"
+          :disabled="noteStore.loading.save"
+          :group="rootNoteGroup"
+          handle=".note-drag-handle"
+          @start="(e: { item: HTMLElement }) => setDraggingFromElement('note', e.item)"
+          @end="setDragging(null)"
+          @update="handleRootNoteSort"
+          @add="handleRootNoteAdd"
         >
-          <ZIcon name="ri:file-text-line" :size="14" color="currentColor" class="shrink-0 opacity-80" />
-          <span class="min-w-0 flex-1 truncate">{{ note.title }}</span>
-        </button>
-        <FileTreeNode
-          v-for="node in props.tree"
-          :key="node.id"
-          :node="node"
-          :active-category-id="activeCategoryId"
-          :active-note-id="activeNoteId"
-          :level="0"
-          :is-mobile="props.isMobile"
-          @select-category="(id: number) => emit('selectCategory', id)"
-          @select-note="(id: number) => emit('selectNote', id)"
-          @request-dialog="(pid: number, pname: string) => emit('requestDialog', pid, pname)"
-          @contextmenu="(n: NotebookNode, e: MouseEvent) => emit('contextmenu', n, e)"
-          @note-contextmenu="handleNoteContextMenu"
-        />
+          <button
+            v-for="note in localRootNotes"
+            :key="`root-${note.id}`"
+            :data-note-id="note.id"
+            data-file-tree-item="true"
+            class="group flex w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-[13px] leading-5 transition"
+            :class="activeNoteId === note.id ? 'bg-slate-200 text-slate-950' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'"
+            style="padding-left: 18px"
+            type="button"
+            @click="emit('selectNote', note.id)"
+            @contextmenu.prevent.stop="(e: MouseEvent) => handleNoteContextMenu(note, e)"
+          >
+            <span
+              class="note-drag-handle shrink-0 cursor-grab text-slate-400 transition"
+              :class="props.isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+            >
+              <ZIcon name="ri:draggable" :size="13" color="currentColor" />
+            </span>
+            <ZIcon name="ri:file-text-line" :size="14" color="currentColor" class="shrink-0 opacity-80" />
+            <span class="min-w-0 flex-1 truncate">{{ note.title }}</span>
+          </button>
+        </VueDraggable>
+
+        <VueDraggable
+          v-model="localTree"
+          :class="['min-h-1', dragSession.kind === 'category' ? 'min-h-6 py-1' : '']"
+          :animation="150"
+          :disabled="noteStore.loading.save"
+          :group="rootCategoryGroup"
+          :move="canMoveRootCategory"
+          handle=".drag-handle"
+          @start="(e: { item: HTMLElement }) => setDraggingFromElement('category', e.item)"
+          @end="setDragging(null)"
+          @update="handleRootCategorySort"
+          @add="handleRootCategoryAdd"
+        >
+          <FileTreeNode
+            v-for="node in localTree"
+            :key="node.id"
+            :node="node"
+            :active-category-id="activeCategoryId"
+            :active-note-id="activeNoteId"
+            :level="0"
+            :is-mobile="props.isMobile"
+            @select-category="(id: number) => emit('selectCategory', id)"
+            @select-note="(id: number) => emit('selectNote', id)"
+            @request-dialog="(pid: number, pname: string) => emit('requestDialog', pid, pname)"
+            @contextmenu="(n: NotebookNode, e: MouseEvent) => emit('contextmenu', n, e)"
+            @note-contextmenu="handleNoteContextMenu"
+          />
+        </VueDraggable>
         <div v-if="props.tree.length === 0" class="px-3 py-8 text-center text-xs text-slate-400">{{ t('note.category.empty') }}</div>
       </template>
     </div>

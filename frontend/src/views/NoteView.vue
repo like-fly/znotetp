@@ -843,8 +843,10 @@ const handleConfirmDelete = async () => {
 /** 纭绉诲姩 */
 const handleMoveConfirm = async (targetId: number) => {
     if (moveDialogType.value === "category") {
-        await noteStore.moveCategory(moveSourceId.value, targetId);
-        message.success(t("note.move.success"));
+        const result = await noteStore.moveCategory(moveSourceId.value, targetId);
+        if (!result) {
+            message.error(t("note.move.failed"));
+        }
     }
     showMoveDialog.value = false;
 };

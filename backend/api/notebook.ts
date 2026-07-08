@@ -285,7 +285,7 @@ export const sortNotebooks = async (c: Context) => {
     const uid = Number(c.get("uid"));
     const payload = await c.req.json();
 
-    const { items } = payload || {};
+    const { items, parent_id } = payload || {};
 
     // 校验 items 非空数组
     if (!Array.isArray(items) || items.length === 0) {
@@ -313,7 +313,28 @@ export const sortNotebooks = async (c: Context) => {
     }
 
     // 从首个分类推断 parent_id，同时校验归属当前用户
-    const firstNode = await db
+    let parentId: number | null = null;
+    if (parent_id !== undefined) {
+        if (parent_id !== null && (typeof parent_id !== "number" || !Number.isFinite(parent_id))) {
+            return c.json({
+                code: -1000,
+                msg: "notebook.sort.items_invalid",
+                data: null,
+            });
+        }
+        parentId = parent_id ?? null;
+        if (parentId !== null) {
+            const parentExists = await checkNodeOwnership(parentId, uid);
+            if (!parentExists) {
+                return c.json({
+                    code: -1000,
+                    msg: "notebook.sort.notebook_not_found",
+                    data: null,
+                });
+            }
+        }
+    } else {
+        const firstNode = await db
         .select({ parent_id: schema.notebooks.parent_id })
         .from(schema.notebooks)
         .where(and(
@@ -322,7 +343,31 @@ export const sortNotebooks = async (c: Context) => {
         ))
         .get();
 
-    if (!firstNode) {
+        if (!firstNode) {
+            return c.json({
+                code: -1000,
+                msg: "notebook.sort.notebook_not_found",
+                data: null,
+            });
+        }
+
+        parentId = firstNode.parent_id;
+    }
+
+    // 事务内批量更新 sort_order（带 user_id 防越权）
+    const itemIds = items.map((item) => item.id);
+    const scopedRows = await db
+        .select({ id: schema.notebooks.id })
+        .from(schema.notebooks)
+        .where(and(
+            inArray(schema.notebooks.id, itemIds),
+            eq(schema.notebooks.user_id, uid),
+            parentId === null
+                ? isNull(schema.notebooks.parent_id)
+                : eq(schema.notebooks.parent_id, parentId),
+        ))
+        .all();
+    if (scopedRows.length !== items.length) {
         return c.json({
             code: -1000,
             msg: "notebook.sort.notebook_not_found",
@@ -330,9 +375,6 @@ export const sortNotebooks = async (c: Context) => {
         });
     }
 
-    const parentId = firstNode.parent_id;
-
-    // 事务内批量更新 sort_order（带 user_id 防越权）
     const now = new Date();
     await db.transaction(async (tx) => {
         for (const item of items) {
@@ -345,6 +387,9 @@ export const sortNotebooks = async (c: Context) => {
                 .where(and(
                     eq(schema.notebooks.id, item.id),
                     eq(schema.notebooks.user_id, uid),
+                    parentId === null
+                        ? isNull(schema.notebooks.parent_id)
+                        : eq(schema.notebooks.parent_id, parentId),
                 ));
         }
     });
