@@ -48,6 +48,7 @@ const siteStore = useSiteStore();
 
 type SidebarTab = "files" | "outline";
 type NoteOutlineItem = { level: number; text: string; index: number };
+type EditorMode = "ir" | "sv";
 
 const isAdmin = computed(() => userStore.userInfo.role === "admin");
 const appName = computed(() => siteStore.siteTitle || siteStore.appInfo.app_name || "ZNoteTP");
@@ -205,6 +206,8 @@ const showSearchBox = ref(false);
 /** 妗岄潰鎼滅储鍏抽敭璇?*/
 const searchKeyword = ref("");
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
+/** 桌面端编辑器模式；切换笔记时恢复即时渲染。 */
+const editorMode = ref<EditorMode>("ir");
 /** 瀵煎叆 Dialog 鏄鹃殣 */
 const showImportDialog = ref(false);
 /** 瀵煎嚭 Dialog 鏄鹃殣 */
@@ -668,6 +671,14 @@ const handleToggleSearch = () => {
     showSearchBox.value = true;
 };
 
+/** 切换即时渲染与 Markdown 原文本模式。 */
+const handleToggleEditorMode = () => {
+    if (!editorRef.value || noteStore.activeNoteId === null) return;
+    const nextMode: EditorMode = editorMode.value === "ir" ? "sv" : "ir";
+    editorRef.value.setEditMode?.(nextMode);
+    editorMode.value = editorRef.value.getEditMode?.() ?? nextMode;
+};
+
 const handleFileMenuSelect = async (key: string) => {
     if (key === "change_password") {
         showChangePassword.value = true;
@@ -960,7 +971,19 @@ const editorRef = ref<(InstanceType<typeof NoteEditor> & {
     applyHeading?: (level: 1 | 2 | 3 | 4 | 5 | 6) => void;
     insertMarkdownAtCursor?: (markdown: string) => void;
     insertMarkdownBelowCurrentLine?: (markdown: string) => void;
+    setEditMode?: (mode: EditorMode) => void;
+    getEditMode?: () => EditorMode;
 }) | null>(null);
+
+/** 每篇笔记均从即时渲染模式开始。 */
+watch(
+    () => noteStore.activeNoteId,
+    async () => {
+        editorMode.value = "ir";
+        await nextTick();
+        editorRef.value?.setEditMode?.("ir");
+    },
+);
 
 const handleOutlineSelect = (index: number) => {
     editorRef.value?.scrollToHeading?.(index);
@@ -1136,6 +1159,16 @@ const handleSaveShortcut = (e: KeyboardEvent) => {
             @click="handleToggleSearch"
           >
             <ZIcon :name="showSearchBox ? 'ri:close-line' : 'ri:search-line'" :size="17" color="currentColor" />
+          </button>
+          <button
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded transition disabled:cursor-not-allowed disabled:opacity-40"
+            :class="editorMode === 'sv' ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'"
+            type="button"
+            :disabled="noteStore.activeNoteId === null"
+            :title="t(editorMode === 'ir' ? 'note.editor.switch_to_source' : 'note.editor.switch_to_ir')"
+            @click="handleToggleEditorMode"
+          >
+            <ZIcon name="ri:code-line" :size="18" color="currentColor" />
           </button>
           <button
             class="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"

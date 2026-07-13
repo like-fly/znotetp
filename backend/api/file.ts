@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { join } from "node:path";
+import { dirname, join, posix } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -55,11 +55,13 @@ export const uploadFiles = async (c: Context) => {
         const now = new Date();
         const year = String(now.getFullYear());
         const month = String(now.getMonth() + 1).padStart(2, "0");
-        const relativePath = join("images", String(uid), year, month, `${fileId}.${ext}`);
+        // URL 与数据库中的相对路径始终使用 /，避免 Windows 反斜杠进入浏览器地址。
+        const relativePath = posix.join("images", String(uid), year, month, `${fileId}.${ext}`);
         const fullPath = join(FILES_BASE_PATH, relativePath);
 
         // 确保目录存在
-        const dir = fullPath.substring(0, fullPath.lastIndexOf("/"));
+        // 使用 path.dirname 兼容 Windows 与 Unix 路径分隔符。
+        const dir = dirname(fullPath);
         if (!existsSync(dir)) {
             mkdirSync(dir, { recursive: true });
         }

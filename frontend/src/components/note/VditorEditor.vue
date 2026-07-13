@@ -35,6 +35,152 @@ const editorRef = ref<HTMLDivElement>();
 /** Vditor 实例引用 */
 let vditor: Vditor | null = null;
 
+type EditorMode = "ir" | "sv";
+
+const IMAGE_NODE_SELECTOR = "span.vditor-ir__node[data-type='img']";
+const CARET_PLACEHOLDER_PATTERN = /[\s\u200b\u200c\u200d\ufeff]/g;
+
+let irEditorElement: HTMLElement | null = null;
+let fallbackExpandedImageNode: HTMLElement | null = null;
+let imageExpansionFrame = 0;
+
+/** 判断节点是否为图片边界附近由 Vditor 插入的空白占位内容。 */
+const isCaretPlaceholder = (node: Node | null): boolean => {
+    if (!node) return false;
+    if (node instanceof HTMLElement && (node.tagName === "WBR" || node.tagName === "BR")) return true;
+    return node.nodeType === Node.TEXT_NODE &&
+        (node.textContent || "").replace(CARET_PLACEHOLDER_PATTERN, "") === "";
+};
+
+/** 在同一层级跳过空白占位节点，查找紧邻的图片节点。 */
+const findSiblingImage = (
+    node: Node | null,
+    direction: "previousSibling" | "nextSibling",
+): HTMLElement | null => {
+    let current = node;
+    while (current) {
+        if (current instanceof HTMLElement && current.matches(IMAGE_NODE_SELECTOR)) {
+            return current;
+        }
+        if (!isCaretPlaceholder(current)) return null;
+        current = current[direction];
+    }
+    return null;
+};
+
+/** 获取选区端点所属的图片节点，用于避免干扰 Vditor 原生图片选区。 */
+const getSelectionImageNode = (node: Node | null): HTMLElement | null => {
+    const element = node instanceof Element ? node : node?.parentElement;
+    return element?.closest<HTMLElement>(IMAGE_NODE_SELECTOR) ?? null;
+};
+
+/** 仅识别折叠光标前后紧邻的图片，不介入图片内部的原生 marker 选区。 */
+const getCollapsedAdjacentImage = (range: Range): HTMLElement | null => {
+    const { startContainer, startOffset } = range;
+
+    if (startContainer.nodeType === Node.ELEMENT_NODE) {
+        return findSiblingImage(startContainer.childNodes[startOffset - 1], "previousSibling") ||
+            findSiblingImage(startContainer.childNodes[startOffset], "nextSibling");
+    }
+
+    if (startContainer.nodeType === Node.TEXT_NODE) {
+        const textNode = startContainer as Text;
+        if (startOffset === 0) {
+            const previousImage = findSiblingImage(textNode.previousSibling, "previousSibling");
+            if (previousImage) return previousImage;
+        }
+        if (startOffset === textNode.length) {
+            return findSiblingImage(textNode.nextSibling, "nextSibling");
+        }
+    }
+
+    return null;
+};
+
+/** 只清理由本组件兜底添加的展开态，不触碰 Vditor 原生维护的图片节点。 */
+const clearFallbackImageExpansion = (): void => {
+    if (fallbackExpandedImageNode?.isConnected) {
+        fallbackExpandedImageNode.classList.remove("vditor-ir__node--expand");
+    }
+    fallbackExpandedImageNode = null;
+};
+
+/** 在 Vditor 自身事件完成后，为未被原生逻辑识别的折叠光标边界补充展开态。 */
+const syncFallbackImageExpansion = (): void => {
+    imageExpansionFrame = 0;
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !irEditorElement) {
+        clearFallbackImageExpansion();
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!irEditorElement.contains(range.startContainer)) {
+        clearFallbackImageExpansion();
+        return;
+    }
+
+    const startImage = getSelectionImageNode(range.startContainer);
+    const endImage = getSelectionImageNode(range.endContainer);
+    if (!range.collapsed || startImage) {
+        if (startImage && startImage === endImage) {
+            // 当前图片已由 Vditor 原生选区接管，保留其展开类并释放兜底所有权。
+            if (fallbackExpandedImageNode && fallbackExpandedImageNode !== startImage) {
+                clearFallbackImageExpansion();
+            } else {
+                fallbackExpandedImageNode = null;
+            }
+            return;
+        }
+        clearFallbackImageExpansion();
+        return;
+    }
+
+    const adjacentImage = getCollapsedAdjacentImage(range);
+    if (adjacentImage === fallbackExpandedImageNode) {
+        adjacentImage?.classList.add("vditor-ir__node--expand");
+        return;
+    }
+
+    clearFallbackImageExpansion();
+    if (!adjacentImage || adjacentImage.classList.contains("vditor-ir__node--expand")) return;
+
+    adjacentImage.classList.add("vditor-ir__node--expand");
+    adjacentImage.classList.remove("vditor-ir__node--hidden");
+    fallbackExpandedImageNode = adjacentImage;
+};
+
+/** 延迟到 Vditor 的 click / keyup 内部逻辑执行完毕后再检查折叠光标边界。 */
+const scheduleFallbackImageExpansion = (): void => {
+    if (imageExpansionFrame) cancelAnimationFrame(imageExpansionFrame);
+    imageExpansionFrame = requestAnimationFrame(syncFallbackImageExpansion);
+};
+
+/** 绑定图片边界兜底监听；图片点击仍完全交给 Vditor 原生事件处理。 */
+const bindImageMarkdownEvents = (): void => {
+    if (irEditorElement) return;
+    const editor = editorRef.value?.querySelector<HTMLElement>(".vditor-ir .vditor-reset");
+    if (!editor) return;
+
+    irEditorElement = editor;
+    irEditorElement.addEventListener("mouseup", scheduleFallbackImageExpansion);
+    irEditorElement.addEventListener("keyup", scheduleFallbackImageExpansion);
+};
+
+/** 解除兜底监听并清理由组件添加的临时展开态。 */
+const unbindImageMarkdownEvents = (): void => {
+    if (irEditorElement) {
+        irEditorElement.removeEventListener("mouseup", scheduleFallbackImageExpansion);
+        irEditorElement.removeEventListener("keyup", scheduleFallbackImageExpansion);
+    }
+    if (imageExpansionFrame) {
+        cancelAnimationFrame(imageExpansionFrame);
+        imageExpansionFrame = 0;
+    }
+    clearFallbackImageExpansion();
+    irEditorElement = null;
+};
+
 /**
  * 获取编辑器当前最新内容
  * 直接从 Vditor 实例取值，避免 input 回调延迟导致 draftContent 不同步
@@ -124,7 +270,48 @@ const insertMarkdownBelowCurrentLine = (markdown: string): void => {
     vditor.insertMD(markdown);
 };
 
-defineExpose({ getContent, scrollToHeading, applyHeading, insertMarkdownAtCursor, insertMarkdownBelowCurrentLine });
+/** 获取当前对外展示的编辑模式。 */
+const getEditMode = (): EditorMode => {
+    return vditor?.getCurrentMode() === "sv" ? "sv" : "ir";
+};
+
+/**
+ * 使用 Vditor 内置快捷键切换即时渲染与 Markdown 原文本模式。
+ * 复用编辑器自身的模式转换逻辑，确保 Markdown 内容和撤销状态保持一致。
+ */
+const setEditMode = (mode: EditorMode): void => {
+    if (!vditor || getEditMode() === mode) return;
+
+    clearFallbackImageExpansion();
+    const currentMode = getEditMode();
+    const currentEditorSelector = currentMode === "sv"
+        ? ".vditor-sv.vditor-reset"
+        : ".vditor-ir .vditor-reset";
+    const currentEditor = editorRef.value?.querySelector<HTMLElement>(currentEditorSelector);
+    if (!currentEditor) return;
+
+    const useMetaKey = navigator.platform.toUpperCase().includes("MAC");
+    const digit = mode === "ir" ? "8" : "9";
+    currentEditor.dispatchEvent(new KeyboardEvent("keydown", {
+        key: digit,
+        code: `Digit${digit}`,
+        ctrlKey: !useMetaKey,
+        metaKey: useMetaKey,
+        altKey: true,
+        bubbles: true,
+        cancelable: true,
+    }));
+};
+
+defineExpose({
+    getContent,
+    getEditMode,
+    setEditMode,
+    scrollToHeading,
+    applyHeading,
+    insertMarkdownAtCursor,
+    insertMarkdownBelowCurrentLine,
+});
 
 /**
  * onMounted 阶段创建 Vditor 实例
@@ -214,7 +401,10 @@ onMounted(() => {
             }
         },
         after() {
-            emit("ready");
+            nextTick(() => {
+                bindImageMarkdownEvents();
+                emit("ready");
+            });
         },
     });
 });
@@ -229,6 +419,7 @@ watch(
         if (isInternalUpdate) return;
         if (!vditor) return;
         if (val !== vditor.getValue()) {
+            clearFallbackImageExpansion();
             isInternalUpdate = true;
             vditor.setValue(val || "");
             nextTick(() => {
@@ -240,6 +431,7 @@ watch(
 
 /** 组件卸载时销毁 Vditor 实例，释放资源 */
 onBeforeUnmount(() => {
+    unbindImageMarkdownEvents();
     vditor?.destroy();
     vditor = null;
 });

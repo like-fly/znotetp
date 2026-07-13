@@ -265,6 +265,8 @@ export default {
     "note.editor.unsaved": "未保存",
     "note.editor.auto_saved": "已保存",
     "note.editor.auto_saving": "保存中...",
+    "note.editor.switch_to_source": "切换到 Markdown 原文本",
+    "note.editor.switch_to_ir": "切换到即时渲染",
     "note.ai.button": "AI 助手",
     "note.meta.created_at": "创建于",
     "note.meta.updated_at": "修改于",

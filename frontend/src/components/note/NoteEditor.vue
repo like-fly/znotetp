@@ -68,7 +68,25 @@ const insertMarkdownBelowCurrentLine = (markdown: string): void => {
     editorRef.value?.insertMarkdownBelowCurrentLine(markdown);
 };
 
-defineExpose({ getContent, scrollToHeading, applyHeading, insertMarkdownAtCursor, insertMarkdownBelowCurrentLine });
+/** 切换即时渲染与 Markdown 原文本模式。 */
+const setEditMode = (mode: "ir" | "sv"): void => {
+    editorRef.value?.setEditMode(mode);
+};
+
+/** 获取当前编辑模式。 */
+const getEditMode = (): "ir" | "sv" => {
+    return editorRef.value?.getEditMode() ?? "ir";
+};
+
+defineExpose({
+    getContent,
+    getEditMode,
+    setEditMode,
+    scrollToHeading,
+    applyHeading,
+    insertMarkdownAtCursor,
+    insertMarkdownBelowCurrentLine,
+});
 </script>
 
 <template>
